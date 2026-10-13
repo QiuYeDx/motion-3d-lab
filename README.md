@@ -1,5 +1,7 @@
 # Motion 3D Lab
 
+在线浏览：https://qiuyedx.github.io/motion-3d-lab/
+
 用 React 19 · three.js（@react-three/fiber + drei）· Motion 写的 3D 创意小样合集，用来给产品页、首页、Landing 页找主视觉和“配菜”。
 
 ```bash
@@ -7,6 +9,8 @@ pnpm install
 pnpm dev      # http://localhost:5196（端口被占时用 PORT 环境变量指定）
 pnpm build
 ```
+
+推送到 `main` 后，GitHub Actions（`.github/workflows/deploy.yml`）会以 `/motion-3d-lab/` 为 base 构建并发布到 GitHub Pages。
 
 目录页按三组列出全部 demo；进入 demo 后 `Esc` 返回目录，`Alt + ← / →` 切换上一个 / 下一个。
 
