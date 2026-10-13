@@ -10,7 +10,7 @@ pnpm dev      # http://localhost:5196（端口被占时用 PORT 环境变量指�
 pnpm build
 ```
 
-推送到 `main` 后，GitHub Actions（`.github/workflows/deploy.yml`）会以 `/motion-3d-lab/` 为 base 构建并发布到 GitHub Pages。
+发布到 GitHub Pages：`pnpm deploy:pages`。脚本以 `/motion-3d-lab/` 为 base 构建，并把 `dist/` 强推到 `gh-pages` 分支（Pages 设置为“从分支部署”，不消耗 Actions 额度）。
 
 目录页按三组列出全部 demo；进入 demo 后 `Esc` 返回目录，`Alt + ← / →` 切换上一个 / 下一个。
 
