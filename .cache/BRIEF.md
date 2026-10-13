@@ -46,7 +46,10 @@ registry, App) — other agents are working in parallel. Put demo-specific CSS i
   Avoid washed-out or muddy colours; check contrast of text over 3D (use `.scrim` if needed).
 
 ## Verify (required)
-Dev server is ALREADY running at http://localhost:5196 (HMR). Do not start or stop servers. If it is unreachable, stop and say so in your report rather than spinning up your own.
+Dev server normally runs at http://localhost:5196 (HMR), but the app may stop it between turns. If it is unreachable,
+start your OWN private one in the background on your assigned port and kill it when done:
+`npx vite --port <your vite port> --strictPort` (run from the project root; it reads the same vite.config.ts).
+Never stop a server you did not start.
 Screenshot tool (off-screen Edge via CDP; the in-app browser pane is hidden so rAF is paused there — don't use it):
 ```
 cd E:/workspace/AI工作区/motion-3d-lab/.cache
