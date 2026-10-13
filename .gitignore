@@ -1,0 +1,5 @@
+node_modules
+dist
+.cache/*
+!.cache/shot.mjs
+!.cache/BRIEF.md
