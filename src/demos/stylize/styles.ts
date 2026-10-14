@@ -24,6 +24,12 @@ import { createNianhuaEffect, printNianhua, nianhuaMeta, nianhuaModes, setNianhu
 import { createUkiyoeEffect, ukiyoeMeta, ukiyoeModes, setUkiyoeMode, type UkiyoeMode } from './effects/ukiyoe'
 import { createRomanEffect, romanMeta, romanModes, setRomanMode, type RomanMode } from './effects/roman'
 import { createTopoEffect, topoMeta, topoModes, setTopoMode, type TopoMode } from './effects/topo'
+import { createPopEffect, popMeta, popModes, setPopMode, type PopMode } from './effects/popscreen'
+import { createTattooEffect, tattooMeta, tattooModes, setTattooMode, type TattooMode } from './effects/tattoo'
+import { createInkwashEffect, paintInkwash, inkwashMeta, inkwashModes, setInkwashMode, type InkwashMode } from './effects/inkwash'
+import { createChalkEffect, drawChalk, chalkMeta, chalkModes, setChalkMode, type ChalkMode } from './effects/chalk'
+import { createHologramEffect, hologramMeta, hologramModes, setHologramMode, type HologramMode } from './effects/hologram'
+import { createInfraredEffect, infraredMeta, infraredModes, setInfraredMode, type InfraredMode } from './effects/infrared'
 /** Every stylize effect the switcher can show, in display order. */
 export type StyleCat = 'print' | 'hand' | 'craft' | 'line' | 'digital' | 'imaging'
 
@@ -118,6 +124,16 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setUkiyoeMode(fx, id as UkiyoeMode),
   },
   {
+    id: 'warhol',
+    cat: 'print',
+    short: '丝印',
+    note: '撞色四联 · 套版错位',
+    meta: popMeta,
+    create: withBg(createPopEffect, popMeta.background),
+    modes: popModes,
+    setMode: (fx, id) => setPopMode(fx, id as PopMode),
+  },
+  {
     id: 'sketch',
     cat: 'hand',
     short: '素描',
@@ -139,6 +155,17 @@ export const STYLES: StyleDef[] = [
     onEnter: (fx) => drawCrayon(fx),
   },
   {
+    id: 'chalk',
+    cat: 'hand',
+    short: '粉笔',
+    note: '侧锋铺色 · 擦痕',
+    meta: chalkMeta,
+    create: withBg(createChalkEffect, chalkMeta.background),
+    modes: chalkModes,
+    setMode: (fx, id) => setChalkMode(fx, id as ChalkMode),
+    onEnter: (fx) => drawChalk(fx),
+  },
+  {
     id: 'oil',
     cat: 'hand',
     short: '油画',
@@ -158,6 +185,17 @@ export const STYLES: StyleDef[] = [
     modes: watercolorModes,
     setMode: (fx, id) => setWatercolorMode(fx, id as WatercolorMode),
     onEnter: (fx) => rebloomWatercolor(fx),
+  },
+  {
+    id: 'inkwash',
+    cat: 'hand',
+    short: '水墨',
+    note: '墨分五色 · 飞白洇染',
+    meta: inkwashMeta,
+    create: withBg(createInkwashEffect, inkwashMeta.background),
+    modes: inkwashModes,
+    setMode: (fx, id) => setInkwashMode(fx, id as InkwashMode),
+    onEnter: (fx) => paintInkwash(fx),
   },
   {
     id: 'pointillism',
@@ -232,6 +270,16 @@ export const STYLES: StyleDef[] = [
     onEnter: (fx) => powerOnNeon(fx),
   },
   {
+    id: 'tattoo',
+    cat: 'line',
+    short: '刺青',
+    note: '粗描边 · 点刺阴影',
+    meta: tattooMeta,
+    create: withBg(createTattooEffect, tattooMeta.background),
+    modes: tattooModes,
+    setMode: (fx, id) => setTattooMode(fx, id as TattooMode),
+  },
+  {
     id: 'ascii',
     cat: 'digital',
     short: '字符',
@@ -262,6 +310,16 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setGlitchMode(fx, id as GlitchMode),
   },
   {
+    id: 'hologram',
+    cat: 'digital',
+    short: '全息',
+    note: '菲涅尔辉光 · 扫描线',
+    meta: hologramMeta,
+    create: withBg(createHologramEffect, hologramMeta.background),
+    modes: hologramModes,
+    setMode: (fx, id) => setHologramMode(fx, id as HologramMode),
+  },
+  {
     id: 'mosaic',
     cat: 'digital',
     short: '拼贴',
@@ -280,6 +338,16 @@ export const STYLES: StyleDef[] = [
     create: withBg(createThermalEffect, thermalMeta.background),
     modes: thermalModes,
     setMode: (fx, id) => setThermalMode(fx, id as ThermalMode),
+  },
+  {
+    id: 'infrared',
+    cat: 'imaging',
+    short: '红外',
+    note: '叶绿素发亮 · 光晕',
+    meta: infraredMeta,
+    create: withBg(createInfraredEffect, infraredMeta.background),
+    modes: infraredModes,
+    setMode: (fx, id) => setInfraredMode(fx, id as InfraredMode),
   },
   {
     id: 'xray',

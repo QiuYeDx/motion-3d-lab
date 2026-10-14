@@ -8,6 +8,10 @@ import * as THREE from 'three'
  * shader linking. The programs are compiled for an off-screen float target, because that is where <Stylize>
  * renders the scene (linear output, no tone mapping — a different program from the on-screen variant).
  * Lights must live outside the group (they are taken from the whole scene).
+ *
+ * With shadows, use `<Canvas shadows="percentage">`, not plain `shadows`: R3F's default PCFSoftShadowMap is swapped
+ * for PCFShadowMap by three r186 on the first shadow render, which changes every program's defines — all the
+ * work done here is thrown away and the scene relinks synchronously when it appears.
  */
 export function usePrecompiled(group: RefObject<THREE.Object3D | null>, onReady?: () => void) {
   const gl = useThree((s) => s.gl)
