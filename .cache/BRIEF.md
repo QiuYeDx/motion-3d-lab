@@ -50,7 +50,9 @@ Dev server normally runs at http://localhost:5196 (HMR), but the app may stop it
 start your OWN private one in the background on your assigned port and kill it when done:
 `npx vite --port <your vite port> --strictPort` (run from the project root; it reads the same vite.config.ts).
 Never stop a server you did not start.
-Screenshot tool (off-screen Edge via CDP; the in-app browser pane is hidden so rAF is paused there — don't use it):
+Screenshot tool (HEADLESS Chrome via CDP, hardware GPU incl. WebGPU, throw-away profile; no window ever appears).
+NEVER launch Microsoft Edge or a visible browser window for testing — the user's desktop gets interrupted. Don't use
+the in-app browser pane for rendering checks either (it's hidden, so rAF is paused there):
 ```
 cd E:/workspace/AI工作区/motion-3d-lab/.cache
 CDP_PORT=<your port> PROFILE=<your profile> node --experimental-websocket shot.mjs shots-<you> 1440x900 2500 "name=http://localhost:5196/?<uniq>#/<demo-id>"
@@ -106,3 +108,13 @@ Each style is TWO files:
    affordance (e.g. press-and-hold or a draggable split using `prev={createOriginalEffect()}` + `wipe`, or a lens),
    drag-to-rotate with Motion inertia, auto-play when idle, `?poster`.
 Scene lighting matters a lot for these looks: strong key light + clear value structure + readable silhouettes.
+Additions (later batch):
+- `effect.update(dt, { dpr, width, height })` now receives the real pixel ratio and drawing-buffer size.
+- Reuse `src/demos/stylize/OriginalSplit.tsx` (`useOriginalSplit()` + `<OriginalSplit>`) for the 原图 split so every
+  stylize page behaves the same. Existing pages to study: `AsciiArt.tsx`, `PencilSketch.tsx`, `OneBitDither.tsx`,
+  `Engraving.tsx`, `TileMosaic.tsx` and their `effects/*.ts`.
+- Your effect will also be added to the style switcher (`StyleSwitcher.tsx`, a red torus knot + yellow ball + blue cube
+  + purple cone + teal ring still life on a cream disc). Make sure the default look is good on that scene too — you may
+  screenshot it by temporarily rendering your effect there in a scratch page, but don't edit StyleSwitcher/styles.ts.
+- On ANGLE/D3D a big multi-mode shader can fail to LINK with an empty log: pick the mode first and run each expensive
+  routine once per pixel instead of inlining it per mode.

@@ -32,7 +32,7 @@ export type StylizeEffect = {
   /** scene clear colour this effect wants (overrides the <Stylize background> prop) */
   background?: THREE.ColorRepresentation
   /** per-frame hook for effects that animate their own uniforms (called for every effect being drawn) */
-  update?: (dt: number) => void
+  update?: (dt: number, ctx: { dpr: number; width: number; height: number }) => void
 }
 
 export const STYLIZE_HEADER = /* glsl */ `
@@ -154,13 +154,18 @@ export type StylizeProps = {
   samples?: number
   /** called after the scene pass, before the effect pass — set your effect uniforms here */
   onFrame?: (dt: number) => void
+  /**
+   * effects that may be shown later: their shaders are compiled in the background (KHR_parallel_shader_compile
+   * via renderer.compileAsync), one at a time, so the first switch to a heavy effect doesn't freeze the page
+   */
+  preload?: StylizeEffect[]
 }
 
 /**
  * Takes over rendering (useFrame priority 1). Put it anywhere inside <Canvas>; everything else in the
  * scene is what gets stylized.
  */
-export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, samples = 4, onFrame }: StylizeProps) {
+export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, samples = 4, onFrame, preload }: StylizeProps) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
   const camera = useThree((s) => s.camera)
@@ -241,9 +246,35 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
     return m
   }
 
-  // drop materials of effects that are no longer in use
+  // drop materials of effects that are no longer in use (preloaded ones count as in use)
   const live = useRef(new Set<StylizeEffect>())
-  live.current = new Set([effect, ...(prev ? [prev] : [])])
+  live.current = new Set([effect, ...(prev ? [prev] : []), ...(preload ?? [])])
+
+  useEffect(() => {
+    if (!preload?.length) return
+    let cancelled = false
+    ;(async () => {
+      for (const fx of preload) {
+        if (cancelled) return
+        if (R.mats.has(fx)) continue
+        const m = matFor(fx)
+        const keep = R.quad.material
+        R.quad.material = m
+        try {
+          await gl.compileAsync(R.post, R.cam)
+        } catch {
+          /* compile errors surface when the effect is drawn */
+        }
+        R.quad.material = keep
+        // let a few frames through between compiles
+        await new Promise((r) => setTimeout(r, 120))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preload, R, gl])
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 1 / 20)
@@ -325,8 +356,9 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
     s.uFar.value = cam.far
     s.uOrtho.value = (cam as THREE.OrthographicCamera).isOrthographicCamera ? 1 : 0
     s.uExposure.value = val(exposure, 1)
-    effect.update?.(dt)
-    if (prev && prev !== effect) prev.update?.(dt)
+    const ctx = { dpr: gl.getPixelRatio(), width: R.buf.x, height: R.buf.y }
+    effect.update?.(dt, ctx)
+    if (prev && prev !== effect) prev.update?.(dt, ctx)
     onFrame?.(dt)
 
     gl.setRenderTarget(null)

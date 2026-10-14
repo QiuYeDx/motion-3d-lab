@@ -14,7 +14,7 @@ pnpm build
 
 目录页按三组列出全部 demo；进入 demo 后 `Esc` 返回目录，`Alt + ← / →` 切换上一个 / 下一个。
 
-## Demo 一览（58 个，五组）
+## Demo 一览（63 个，五组）
 
 | 组 | Demo | 要点 |
 |---|---|---|
@@ -54,7 +54,7 @@ pnpm build
 | 材质 | 熔岩融球 `shader-metaballs` | 光线步进熔岩灯，平滑并集的蜡团分裂融合，指针拉出液滴 |
 | 材质 | 雨窗 `shader-rain` | 雨滴折射倒置的清晰城市，玻璃其余部分虚焦；拖动擦出清晰区域 |
 | 材质 | 黄昏海面 `shader-ocean` | 8 组 Gerstner 波 + 菲涅尔天空反射与日光带，小船随浪起伏 |
-| 风格化 | 风格切换 `stylize-switch` | 同一个静物在下面 7 种画风间斜向擦除切换，拖动分割线对比原图 |
+| 风格化 | 风格切换 `stylize-switch` | 同一个静物在下面 12 种画风间斜向擦除切换，拖动分割线对比原图 |
 | 风格化 | 半调印刷 `shader-halftone` | 3D 场景实时转 CMYK 网点 / Riso 双色 / 单色报纸，可调网点与套印错位 |
 | 风格化 | 字符画 `stylize-ascii` | 字形图集：明暗字符阶、沿轮廓的 / \ \| -、汉字、盲文、代码雨，鼠标处透视原图 |
 | 风格化 | 像素风 `stylize-pixel` | 低分辨率渲染 + OKLab 调色板量化 + 1px 描边，像素对齐相机不闪烁；CRT 模式 |
@@ -62,6 +62,11 @@ pnpm build
 | 风格化 | 版画雕刻 `stylize-engrave` | 线条随形体起伏的铜版雕刻、木刻、麻胶双色套印 |
 | 风格化 | 素描排线 `stylize-sketch` | 按明暗叠加的排线 + 抖动轮廓线，8 fps “沸腾”；钢笔、炭笔、蓝图 |
 | 风格化 | 材料拼贴 `stylize-mosaic` | 乐高、十字绣、马赛克瓷砖、LED 屏，每一格单独打光 |
+| 风格化 | 油画笔触 `stylize-oil` | 各向异性 Kuwahara + 顺形体的笔触 + 厚涂光影与亚麻画布；古典、印象派、厚涂 |
+| 风格化 | 水彩晕染 `stylize-watercolor` | 边缘积色、颗粒沉淀、湿画渗化与留白，画面会慢慢“晾干” |
+| 风格化 | 刺绣针脚 `stylize-embroidery` | 缎面针沿形体排线、丝线捻度与光泽、茎针勾边；缎面绣、苏绣、牛仔补丁 |
+| 风格化 | 卡通描边 `stylize-toon` | 赛璐璐分色 + 粗细变化墨线；日式动画、美漫网点、扁平插画 |
+| 风格化 | 热成像 `stylize-thermal` | 铁红 / 彩虹 / 白热 / 夜视仪，传感器噪声与定时校准，测温十字线 |
 | 实验 | 滚动叙事 `lab-scroll` | `useScroll` → `useSpring` → `useFrame`，关键帧驱动产品盒拆解与重组 |
 | 实验 | CSS 等距界面 `lab-css-iso` | 不用 WebGL，CSS 3D 把仪表盘倾斜成等距平面，可一键展平 |
 | 实验 | 景深卡片 `lab-tilt` | 多层 `translateZ` + 弹簧倾斜 + 指针高光 |
@@ -105,6 +110,7 @@ public/posters/           目录卡片封面（由下方脚本截取）
 - 效果是纯数据：`src/demos/stylize/effects/*.ts` 各自导出 `createXEffect()`，GLSL 只需定义 `vec3 stylize(vec2 px)`，可用 `sceneAt / normalAt / depthAt / coverageAt` 等公共函数；网格与线宽一律按 CSS px × DPR 计算。
 - 同一套接口支持 `prev` + `wipe`：两种效果沿同一条斜线擦除切换，也用来做“原图 / 风格”分割对比（`createOriginalEffect()`）。
 - `src/demos/stylize/styles.ts` 是切换器的风格清单，新增一种画风只要写一个效果文件并在这里登记。
+- `preload` 让切换器在空闲时用 `renderer.compileAsync` 逐个预编译所有画风的着色器，避免第一次切到重型效果（刺绣、油画）时卡顿数秒。
 
 ### Motion 与 three.js 的配合方式
 
@@ -114,7 +120,7 @@ public/posters/           目录卡片封面（由下方脚本截取）
 
 ## 封面截图
 
-`.cache/shot.mjs` 用屏幕外的 Edge（CDP）截图，可以绕开内置浏览器面板隐藏时 rAF 暂停的问题：
+`.cache/shot.mjs` 用无头 Chrome（CDP，显卡加速，含 WebGPU）截图，不会弹出任何窗口，也能绕开内置浏览器面板隐藏时 rAF 暂停的问题：
 
 ```bash
 cd .cache
@@ -125,7 +131,7 @@ URL 带 `?poster` 时等距场景会居中，`body.poster` 会隐藏所有 UI �
 
 ## 接下来可以试的方向
 
-- **更多画风**：油画笔触（Kuwahara 滤波）、水彩晕染、卡通描边（Toon + 轮廓）、热成像、刺绣针脚——都可以按上面的效果接口接进风格切换器。
+- **更多画风**：彩色玻璃（Voronoi + 铅条）、剪纸叠层、蜡笔 / 粉彩、点彩派、故障艺术（Glitch）、蓝晒——都可以按上面的效果接口接进风格切换器。
 - **等距天气站**：同一座小岛在晴、雨、雪、雷暴之间切换，粒子与光照联动。
 - **手势 / 摄像头交互**：用手部关键点控制粒子或等距场景（需要摄像头权限，作为可选交互）。
 - **SDF 字体动画**：3D 文字的融化、挤出、碎裂与重组。

@@ -69,6 +69,12 @@ type Phase = { cur: number; from: number | null }
 export default function StyleSwitcher() {
   const fxs = useMemo(() => STYLES.map((s) => s.create()), [])
   const original = useMemo(createOriginalEffect, [])
+  // compile every style's shader in the background once the first frames are on screen
+  const [preload, setPreload] = useState<StylizeEffect[] | undefined>()
+  useEffect(() => {
+    const id = setTimeout(() => setPreload(fxs), 1500)
+    return () => clearTimeout(id)
+  }, [fxs])
   const [phase, setPhase] = useState<Phase>({ cur: 0, from: null })
   const [mode, setMode] = useState<string[]>(() => STYLES.map((s) => s.modes?.[0]?.id ?? ''))
   const wipe = useMotionValue(1)
@@ -103,6 +109,7 @@ export default function StyleSwitcher() {
     const keep = userSplit.current
     if (split.get() > 0.001) await animate(split, 0, { duration: 0.25, ease: [0.4, 0, 0.2, 1] })
     wipe.set(0)
+    STYLES[next].onEnter?.(fxs[next])
     setPhase({ cur: next, from: phase.cur })
     await animate(wipe, 1, { duration: 1.05, ease: [0.65, 0, 0.35, 1] })
     setPhase({ cur: next, from: null })
@@ -199,7 +206,7 @@ export default function StyleSwitcher() {
     >
       <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 2.3, 6.2], fov: 36 }} gl={{ antialias: false }}>
         <CameraFrame />
-        <Stylize effect={effect} prev={prev} wipe={wipeMv} background={background} />
+        <Stylize effect={effect} prev={prev} wipe={wipeMv} background={background} preload={preload} />
         <hemisphereLight args={['#fff6ea', '#5a5048', 0.55]} />
         <directionalLight
           position={[-3.5, 6, 4]}
@@ -263,22 +270,29 @@ export default function StyleSwitcher() {
           sub={style.meta.en}
           aside={style.note}
         />
-        <div className="dock">
-          <Seg
-            items={STYLES.map((s, i) => ({ value: i, label: s.short ?? s.meta.title }))}
-            value={phase.cur}
-            onChange={(i) => {
-              lastInput.current = performance.now()
-              go(i)
-            }}
-          />
-          {style.modes && style.modes.length > 1 && (
-            <>
-              <span className="dock-sep" />
-              <Seg items={style.modes.map((m) => ({ value: m.id, label: m.label }))} value={mode[phase.cur]} onChange={(id) => pickMode(phase.cur, id)} />
-            </>
-          )}
-        </div>
+        {/* style picker: a vertical rail on the right (desktop), a scrollable chip row (phones) */}
+        <nav className="ss-rail" aria-label="画风">
+          {STYLES.map((st, i) => (
+            <button
+              key={st.id}
+              className="ss-item"
+              aria-pressed={i === phase.cur}
+              onClick={() => {
+                lastInput.current = performance.now()
+                go(i)
+              }}
+            >
+              {i === phase.cur && <motion.span layoutId="ss-item-bg" className="ss-item-bg" transition={{ type: 'spring', stiffness: 520, damping: 40 }} />}
+              <span className="ss-item-no">{String(i + 1).padStart(2, '0')}</span>
+              <span className="ss-item-name">{st.meta.title}</span>
+            </button>
+          ))}
+        </nav>
+        {style.modes && style.modes.length > 1 && (
+          <div className="dock">
+            <Seg items={style.modes.map((m) => ({ value: m.id, label: m.label }))} value={mode[phase.cur]} onChange={(id) => pickMode(phase.cur, id)} />
+          </div>
+        )}
         <p className="hint">拖动把手对比原图 · 拖动画面旋转</p>
       </div>
 
@@ -305,9 +319,35 @@ export default function StyleSwitcher() {
           box-shadow: inset 0 0 0 1px var(--line);
         }
         .poster .ss-split { display: none; }
+        .ss-rail {
+          position: absolute; right: clamp(16px, 2.4vw, 32px); top: 50%; transform: translateY(-50%);
+          display: flex; flex-direction: column; gap: 2px; padding: 6px; border-radius: 18px; pointer-events: auto;
+          background: var(--glass); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
+          box-shadow: 0 10px 34px rgba(0,0,0,0.12), inset 0 0 0 1px var(--line);
+        }
+        .ss-item {
+          position: relative; display: flex; align-items: baseline; gap: 10px; padding: 7px 14px 7px 10px; border: 0;
+          border-radius: 12px; background: none; color: var(--fg-2); font: 500 13px/1.3 var(--sans, inherit); text-align: left;
+          cursor: pointer; white-space: nowrap; transition: color 0.2s;
+        }
+        .ss-item:hover, .ss-item[aria-pressed='true'] { color: var(--fg); }
+        .ss-item-bg { position: absolute; inset: 0; border-radius: 12px; background: color-mix(in srgb, var(--fg) 10%, transparent); }
+        .ss-item-no { position: relative; font: 500 10px/1 var(--mono); opacity: 0.6; }
+        .ss-item-name { position: relative; }
+        @media (max-width: 759px) {
+          .ss-rail {
+            top: auto; bottom: 74px; right: 12px; left: 12px; transform: none; flex-direction: row; overflow-x: auto;
+            scrollbar-width: none; border-radius: 14px;
+          }
+          .ss-rail::-webkit-scrollbar { display: none; }
+          .ss-item { padding: 7px 11px; }
+          .ss-item-no { display: none; }
+          .ss-root .big-label { bottom: 132px; }
+        }
         .ss-scrim { position: absolute; left: -12vw; bottom: -10vh; width: min(760px, 70vw); height: 380px; pointer-events: none; }
         .ss-root .big-label { z-index: 1; }
         @media (max-width: 759px) { .ss-root .dock { max-width: calc(100vw - 24px); overflow-x: auto; } }
+        .poster .ss-rail { display: none; }
       `}</style>
     </div>
   )

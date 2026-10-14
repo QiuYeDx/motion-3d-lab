@@ -1,6 +1,7 @@
-// Env: CDP_PORT (default 9333), PROFILE (dir name, default edge-cdp-profile), FORMAT, CLIP, DSF (device scale)
+// Env: CDP_PORT (default 9333), PROFILE (dir name, default chrome-cdp-profile), FORMAT, CLIP, DSF (device scale)
 // Usage: node --experimental-websocket shot.mjs <outDir> <width>x<height> <waitMs> name=url[|asyncIIFE][||CLICKS:x,y@ms;x1,y1>x2,y2@ms] ...
-// Launches Edge (headful, off-screen so the real GPU/WebGPU is used), screenshots each URL via CDP.
+// Launches headless Chrome (new headless mode, hardware GPU via ANGLE/D3D11, so no window ever appears) in its own
+// throw-away profile and screenshots each URL via CDP. It never touches the user's own Chrome profile or windows.
 import { spawn, spawnSync } from 'node:child_process'
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join, basename } from 'node:path'
@@ -9,21 +10,28 @@ const [outDir, size, waitMs, ...jobs] = process.argv.slice(2)
 const [W, H] = size.split('x').map(Number)
 mkdirSync(outDir, { recursive: true })
 
-const edge = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+const chrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 const port = Number(process.env.CDP_PORT) || 9333
-const profile = join(process.cwd(), process.env.PROFILE || 'edge-cdp-profile')
+const profile = join(process.cwd(), process.env.PROFILE || 'chrome-cdp-profile')
 // fresh profile every run: a reused one serves stale Vite modules from its HTTP cache
 rmSync(profile, { recursive: true, force: true })
-const proc = spawn(edge, [
+const proc = spawn(chrome, [
+  '--headless=new',
   `--remote-debugging-port=${port}`,
   `--user-data-dir=${profile}`,
+  '--enable-gpu',
+  '--use-angle=d3d11',
+  '--ignore-gpu-blocklist',
   '--enable-unsafe-webgpu',
   '--no-first-run',
-  '--window-position=-2400,0',
-  `--window-size=${W + 16},${H + 120}`,
+  '--no-default-browser-check',
+  '--disable-extensions',
+  '--disable-sync',
+  '--mute-audio',
+  '--hide-scrollbars',
+  `--window-size=${W},${H}`,
   '--disable-backgrounding-occluded-windows',
   '--disable-renderer-backgrounding',
-  '--disable-extensions',
   'about:blank',
 ], { stdio: 'ignore' })
 
@@ -99,5 +107,5 @@ for (const job of jobs) {
 }
 ws.close()
 proc.kill()
-spawnSync('powershell', ['-NoProfile', '-Command', "Get-CimInstance Win32_Process -Filter \"name='msedge.exe'\" | Where-Object { $_.CommandLine -like '*' + $env:SHOT_PROFILE + '*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], { env: { ...process.env, SHOT_PROFILE: basename(profile) } })
+spawnSync('powershell', ['-NoProfile', '-Command', "Get-CimInstance Win32_Process -Filter \"name='chrome.exe'\" | Where-Object { $_.CommandLine -like '*' + $env:SHOT_PROFILE + '*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], { env: { ...process.env, SHOT_PROFILE: basename(profile) } })
 process.exit(0)

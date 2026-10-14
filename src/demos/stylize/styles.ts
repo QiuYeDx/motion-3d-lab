@@ -7,6 +7,11 @@ import { createHalftoneEffect, halftoneMeta, halftoneModes, setHalftoneMode, typ
 import { createMosaicEffect, mosaicMeta, mosaicModes, setMosaicMode, type MosaicMode } from './effects/mosaic'
 import { createSketchEffect, setSketchMode, sketchMeta, sketchModes, type SketchMode } from './effects/sketch'
 
+import { createToonEffect, toonMeta, toonModes, setToonMode, type ToonMode } from './effects/toon'
+import { createThermalEffect, thermalMeta, thermalModes, setThermalMode, type ThermalMode } from './effects/thermal'
+import { createOilEffect, oilMeta, oilModes, setOilMode, type OilMode } from './effects/oil'
+import { createWatercolorEffect, rebloomWatercolor, watercolorMeta, watercolorModes, setWatercolorMode, type WatercolorMode } from './effects/watercolor'
+import { createEmbroideryEffect, stitchInEmbroidery, embroideryMeta, embroideryModes, setEmbroideryMode, type EmbroideryMode } from './effects/embroidery'
 /** Every stylize effect the switcher can show, in display order. */
 export type StyleDef = {
   id: string
@@ -17,6 +22,8 @@ export type StyleDef = {
   /** a mode may flip the page to light text (e.g. blueprint, LED) */
   modes?: readonly { id: string; label: string; dark?: boolean }[]
   setMode?: (fx: StylizeEffect, id: string) => void
+  /** called when the switcher wipes this style in (e.g. restart an intro animation) */
+  onEnter?: (fx: StylizeEffect) => void
 }
 
 // assign instead of spreading so effects that keep state on themselves (fx.sketch, fx.mosaic …) stay intact
@@ -60,6 +67,44 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setSketchMode(fx, id as SketchMode),
   },
   {
+    id: 'oil',
+    short: '油画',
+    note: 'Kuwahara · 厚涂笔触',
+    meta: oilMeta,
+    create: withBg(createOilEffect, oilMeta.background),
+    modes: oilModes,
+    setMode: (fx, id) => setOilMode(fx, id as OilMode),
+  },
+  {
+    id: 'watercolor',
+    short: '水彩',
+    note: '边缘积色 · 颗粒沉淀',
+    meta: watercolorMeta,
+    create: withBg(createWatercolorEffect, watercolorMeta.background),
+    modes: watercolorModes,
+    setMode: (fx, id) => setWatercolorMode(fx, id as WatercolorMode),
+    onEnter: (fx) => rebloomWatercolor(fx),
+  },
+  {
+    id: 'embroidery',
+    short: '刺绣',
+    note: '缎面针 · 丝线光泽',
+    meta: embroideryMeta,
+    create: withBg(createEmbroideryEffect, embroideryMeta.background),
+    modes: embroideryModes,
+    setMode: (fx, id) => setEmbroideryMode(fx, id as EmbroideryMode),
+    onEnter: (fx) => stitchInEmbroidery(fx),
+  },
+  {
+    id: 'toon',
+    short: '卡通',
+    note: '赛璐璐分色 · 墨线',
+    meta: toonMeta,
+    create: withBg(createToonEffect, toonMeta.background),
+    modes: toonModes,
+    setMode: (fx, id) => setToonMode(fx, id as ToonMode),
+  },
+  {
     id: 'ascii',
     short: '字符',
     note: '字形图集 · 轮廓感知',
@@ -85,5 +130,14 @@ export const STYLES: StyleDef[] = [
     create: withBg(createMosaicEffect, mosaicMeta.background),
     modes: mosaicModes,
     setMode: (fx, id) => setMosaicMode(fx, id as MosaicMode),
+  },
+  {
+    id: 'thermal',
+    short: '热像',
+    note: '温度映射 · 传感器噪声',
+    meta: thermalMeta,
+    create: withBg(createThermalEffect, thermalMeta.background),
+    modes: thermalModes,
+    setMode: (fx, id) => setThermalMode(fx, id as ThermalMode),
   },
 ]
