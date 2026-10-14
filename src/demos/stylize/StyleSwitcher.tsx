@@ -6,7 +6,7 @@ import { BigLabel } from '../../components/BigLabel'
 import { Seg } from '../../components/Seg'
 import { POSTER } from '../../lib/iso'
 import { createOriginalEffect, Stylize, type StylizeEffect } from '../../lib/stylize'
-import { STYLES, type StyleDef } from './styles'
+import { STYLE_CATS, STYLES, type StyleDef } from './styles'
 
 /*
  * 风格切换 — one still life, every stylize effect. Switching wipes the new style across the old one
@@ -90,7 +90,10 @@ export default function StyleSwitcher() {
   const teaching = useRef<ReturnType<typeof animate> | null>(null)
 
   const style: StyleDef = STYLES[phase.cur]
-  const toneOf = (i: number) => (STYLES[i].modes?.find((m) => m.id === mode[i])?.dark ? 'dark' : STYLES[i].meta.theme)
+  const toneOf = (i: number) => {
+    const m = STYLES[i].modes?.find((x) => x.id === mode[i])
+    return m?.tone ?? (m?.dark ? 'dark' : STYLES[i].meta.theme)
+  }
   // the wipe uncovers the left side first, so the bottom-left copy sits over the incoming style
   const tone = toneOf(phase.cur)
 
@@ -282,7 +285,12 @@ export default function StyleSwitcher() {
         />
         {/* style picker: a vertical rail on the right (desktop), a scrollable chip row (phones) */}
         <nav className="ss-rail" aria-label="画风">
-          {STYLES.map((st, i) => (
+          {STYLES.map((st, i) => [
+            (i === 0 || STYLES[i - 1].cat !== st.cat) && (
+              <span key={`cat-${st.cat}`} className="ss-cat">
+                {STYLE_CATS.find((c) => c.id === st.cat)?.label}
+              </span>
+            ),
             <button
               key={st.id}
               className="ss-item"
@@ -295,8 +303,8 @@ export default function StyleSwitcher() {
               {i === phase.cur && <motion.span layoutId="ss-item-bg" className="ss-item-bg" transition={{ type: 'spring', stiffness: 520, damping: 40 }} />}
               <span className="ss-item-no">{String(i + 1).padStart(2, '0')}</span>
               <span className="ss-item-name">{st.meta.title}</span>
-            </button>
-          ))}
+            </button>,
+          ])}
         </nav>
         {style.modes && style.modes.length > 1 && (
           <div className="dock">
@@ -345,6 +353,11 @@ export default function StyleSwitcher() {
         .ss-item-bg { position: absolute; inset: 0; border-radius: 12px; background: color-mix(in srgb, var(--fg) 10%, transparent); }
         .ss-item-no { position: relative; font: 500 10px/1 var(--mono); opacity: 0.6; }
         .ss-item-name { position: relative; }
+        .ss-cat {
+          flex: none; padding: 10px 10px 3px; font: 500 10px/1.2 var(--mono); letter-spacing: 0.06em;
+          color: var(--fg-2); opacity: 0.75; white-space: nowrap;
+        }
+        .ss-cat:first-child { padding-top: 4px; }
         @media (max-width: 759px) {
           .ss-rail {
             top: auto; bottom: 74px; right: 12px; left: 12px; transform: none; flex-direction: row; overflow-x: auto;
@@ -354,6 +367,8 @@ export default function StyleSwitcher() {
           .ss-rail::-webkit-scrollbar { display: none; }
           .ss-item { padding: 7px 11px; }
           .ss-item-no { display: none; }
+          .ss-cat { align-self: center; padding: 0 4px 0 10px; border-left: 1px solid var(--line); }
+          .ss-cat:first-child { border-left: 0; padding-left: 6px; }
           .ss-root .big-label { bottom: 132px; }
         }
         .ss-scrim { position: absolute; left: -12vw; bottom: -10vh; width: min(760px, 70vw); height: 380px; pointer-events: none; }

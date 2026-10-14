@@ -18,15 +18,34 @@ import { createGlassEffect, glassMeta, glassModes, setGlassMode, type GlassMode 
 import { createPapercutEffect, papercutMeta, papercutModes, setPapercutMode, type PapercutMode } from './effects/papercut'
 import { createCrayonEffect, drawCrayon, crayonMeta, crayonModes, setCrayonMode, type CrayonMode } from './effects/crayon'
 import { createPointillismEffect, pointillismMeta, pointillismModes, setPointillismMode, type PointillismMode } from './effects/pointillism'
+import { createNeonEffect, powerOnNeon, neonMeta, neonModes, setNeonMode, type NeonMode } from './effects/neon'
+import { createXrayEffect, xrayMeta, xrayModes, setXrayMode, type XrayMode } from './effects/xray'
+import { createNianhuaEffect, printNianhua, nianhuaMeta, nianhuaModes, setNianhuaMode, type NianhuaMode } from './effects/nianhua'
+import { createUkiyoeEffect, ukiyoeMeta, ukiyoeModes, setUkiyoeMode, type UkiyoeMode } from './effects/ukiyoe'
+import { createRomanEffect, romanMeta, romanModes, setRomanMode, type RomanMode } from './effects/roman'
+import { createTopoEffect, topoMeta, topoModes, setTopoMode, type TopoMode } from './effects/topo'
 /** Every stylize effect the switcher can show, in display order. */
+export type StyleCat = 'print' | 'hand' | 'craft' | 'line' | 'digital' | 'imaging'
+
+/** rail groups, in display order */
+export const STYLE_CATS: { id: StyleCat; label: string }[] = [
+  { id: 'print', label: '印刷与版画' },
+  { id: 'hand', label: '手绘' },
+  { id: 'craft', label: '手工' },
+  { id: 'line', label: '线条与卡通' },
+  { id: 'digital', label: '数字' },
+  { id: 'imaging', label: '成像' },
+]
+
 export type StyleDef = {
   id: string
+  cat: StyleCat
   short?: string
   note?: string
   meta: { title: string; en: string; background: string; theme: 'light' | 'dark' }
   create: () => StylizeEffect
-  /** a mode may flip the page to light text (e.g. blueprint, LED) */
-  modes?: readonly { id: string; label: string; dark?: boolean }[]
+  /** a mode may override the page tone: `dark: true` (blueprint, LED) or `tone` either way (x-ray scanner is light) */
+  modes?: readonly { id: string; label: string; dark?: boolean; tone?: 'light' | 'dark' }[]
   setMode?: (fx: StylizeEffect, id: string) => void
   /** called when the switcher wipes this style in (e.g. restart an intro animation) */
   onEnter?: (fx: StylizeEffect) => void
@@ -38,6 +57,7 @@ const withBg = (create: () => StylizeEffect, background: string) => () => Object
 export const STYLES: StyleDef[] = [
   {
     id: 'halftone',
+    cat: 'print',
     short: '半调',
     note: 'AM 网点 · 分色',
     meta: halftoneMeta,
@@ -47,6 +67,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'cyanotype',
+    cat: 'print',
     short: '蓝晒',
     note: '普鲁士蓝 · 刷涂边缘',
     meta: cyanotypeMeta,
@@ -57,6 +78,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'dither',
+    cat: 'print',
     short: '抖动',
     note: '两色 · 世界稳定网点',
     meta: ditherMeta,
@@ -66,6 +88,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'engrave',
+    cat: 'print',
     short: '版画',
     note: '线条随形体起伏',
     meta: engraveMeta,
@@ -74,7 +97,29 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setEngraveMode(fx, id as EngraveMode),
   },
   {
+    id: 'nianhua',
+    cat: 'print',
+    short: '年画',
+    note: '墨线版 · 套色',
+    meta: nianhuaMeta,
+    create: withBg(createNianhuaEffect, nianhuaMeta.background),
+    modes: nianhuaModes,
+    setMode: (fx, id) => setNianhuaMode(fx, id as NianhuaMode),
+    onEnter: (fx) => printNianhua(fx),
+  },
+  {
+    id: 'ukiyoe',
+    cat: 'print',
+    short: '浮世绘',
+    note: '平涂 · 晕刷',
+    meta: ukiyoeMeta,
+    create: withBg(createUkiyoeEffect, ukiyoeMeta.background),
+    modes: ukiyoeModes,
+    setMode: (fx, id) => setUkiyoeMode(fx, id as UkiyoeMode),
+  },
+  {
     id: 'sketch',
+    cat: 'hand',
     short: '素描',
     note: '排线 · 手绘轮廓',
     meta: sketchMeta,
@@ -84,6 +129,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'crayon',
+    cat: 'hand',
     short: '蜡笔',
     note: '蜡质笔触 · 纸纹留白',
     meta: crayonMeta,
@@ -94,6 +140,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'oil',
+    cat: 'hand',
     short: '油画',
     note: 'Kuwahara · 厚涂笔触',
     meta: oilMeta,
@@ -103,6 +150,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'watercolor',
+    cat: 'hand',
     short: '水彩',
     note: '边缘积色 · 颗粒沉淀',
     meta: watercolorMeta,
@@ -113,6 +161,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'pointillism',
+    cat: 'hand',
     short: '点彩',
     note: '并置纯色 · 视觉混合',
     meta: pointillismMeta,
@@ -122,6 +171,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'embroidery',
+    cat: 'craft',
     short: '刺绣',
     note: '缎面针 · 丝线光泽',
     meta: embroideryMeta,
@@ -132,6 +182,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'glass',
+    cat: 'craft',
     short: '玻璃',
     note: '铅条 · 背光透射',
     meta: glassMeta,
@@ -141,6 +192,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'papercut',
+    cat: 'craft',
     short: '剪纸',
     note: '分层 · 投影',
     meta: papercutMeta,
@@ -149,7 +201,18 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setPapercutMode(fx, id as PapercutMode),
   },
   {
+    id: 'roman',
+    cat: 'craft',
+    short: '镶嵌',
+    note: '石子沿轮廓排布',
+    meta: romanMeta,
+    create: withBg(createRomanEffect, romanMeta.background),
+    modes: romanModes,
+    setMode: (fx, id) => setRomanMode(fx, id as RomanMode),
+  },
+  {
     id: 'toon',
+    cat: 'line',
     short: '卡通',
     note: '赛璐璐分色 · 墨线',
     meta: toonMeta,
@@ -158,7 +221,19 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setToonMode(fx, id as ToonMode),
   },
   {
+    id: 'neon',
+    cat: 'line',
+    short: '霓虹',
+    note: '发光轮廓 · 灯管闪烁',
+    meta: neonMeta,
+    create: withBg(createNeonEffect, neonMeta.background),
+    modes: neonModes,
+    setMode: (fx, id) => setNeonMode(fx, id as NeonMode),
+    onEnter: (fx) => powerOnNeon(fx),
+  },
+  {
     id: 'ascii',
+    cat: 'digital',
     short: '字符',
     note: '字形图集 · 轮廓感知',
     meta: asciiMeta,
@@ -168,6 +243,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'pixel',
+    cat: 'digital',
     short: '像素',
     note: '低分辨率 · 调色板量化',
     meta: pixelMeta,
@@ -177,6 +253,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'glitch',
+    cat: 'digital',
     short: '故障',
     note: 'RGB 错位 · 像素排序',
     meta: glitchMeta,
@@ -186,6 +263,7 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'mosaic',
+    cat: 'digital',
     short: '拼贴',
     note: '实体单元重拼',
     meta: mosaicMeta,
@@ -195,11 +273,32 @@ export const STYLES: StyleDef[] = [
   },
   {
     id: 'thermal',
+    cat: 'imaging',
     short: '热像',
     note: '温度映射 · 传感器噪声',
     meta: thermalMeta,
     create: withBg(createThermalEffect, thermalMeta.background),
     modes: thermalModes,
     setMode: (fx, id) => setThermalMode(fx, id as ThermalMode),
+  },
+  {
+    id: 'xray',
+    cat: 'imaging',
+    short: 'X光',
+    note: '厚度即密度 · 胶片',
+    meta: xrayMeta,
+    create: withBg(createXrayEffect, xrayMeta.background),
+    modes: xrayModes.map((m) => (m.id === 'scan' ? { ...m, tone: 'light' as const } : m)),
+    setMode: (fx, id) => setXrayMode(fx, id as XrayMode),
+  },
+  {
+    id: 'topo',
+    cat: 'imaging',
+    short: '等高线',
+    note: '深度即海拔',
+    meta: topoMeta,
+    create: withBg(createTopoEffect, topoMeta.background),
+    modes: topoModes,
+    setMode: (fx, id) => setTopoMode(fx, id as TopoMode),
   },
 ]
