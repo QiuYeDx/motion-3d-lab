@@ -31,6 +31,11 @@ export type StylizeEffect = {
   filter?: 'linear' | 'nearest'
   /** scene clear colour this effect wants (overrides the <Stylize background> prop) */
   background?: THREE.ColorRepresentation
+  /**
+   * clear colour while the effect's shader is still compiling and the plain render stands in for it — for effects
+   * whose `background` is a technical key colour (e.g. a negative colour used for anti-aliased coverage)
+   */
+  previewBackground?: THREE.ColorRepresentation
   /** per-frame hook for effects that animate their own uniforms (called for every effect being drawn) */
   update?: (dt: number, ctx: { dpr: number; width: number; height: number }) => void
 }
@@ -335,7 +340,7 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
     const prevAlpha = gl.getClearAlpha()
 
     /* 1 · scene colour + depth (a second pass when the outgoing effect wants another background) */
-    const bgA = R.bgA.set(effect.background ?? background)
+    const bgA = R.bgA.set(R.ready.has(effect) ? (effect.background ?? background) : (effect.previewBackground ?? background))
     gl.setRenderTarget(R.color)
     gl.setClearColor(bgA, 1)
     gl.clear(true, true, false)

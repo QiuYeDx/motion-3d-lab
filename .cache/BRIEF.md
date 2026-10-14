@@ -133,3 +133,7 @@ and report the number.
   (three r186 swaps the default PCFSoft for PCF on the first shadow render, invalidating precompiled programs).
 - The style switcher's still life is one big lit scene with a cream floor disc; make sure your effect's default mode
   reads well there too (report how it looks).
+- Effects are created lazily by the switcher, so keep `create<Name>Effect()` reasonably cheap (< ~60 ms): build big
+  CPU textures incrementally or cache them at module level after first creation.
+- Use a UNIQUE scratch-file name prefixed with your PROFILE (e.g. `_p-sty19Still.tsx`) if you make a temporary test
+  page, and delete it before reporting.

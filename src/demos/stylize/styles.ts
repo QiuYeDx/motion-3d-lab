@@ -36,9 +36,15 @@ import { createNewspaperEffect, newspaperMeta, newspaperModes, setNewspaperMode,
 import { createPolaroidEffect, developPolaroid, polaroidMeta, polaroidModes, setPolaroidMode, type PolaroidMode } from './effects/polaroid'
 import { createPuppetEffect, puppetMeta, puppetModes, setPuppetMode, type PuppetMode } from './effects/puppet'
 import { createCloisonneEffect, cloisonneMeta, cloisonneModes, setCloisonneMode, type CloisonneMode } from './effects/cloisonne'
+import { createVaporwaveEffect, vaporwaveMeta, vaporwaveModes, setVaporwaveMode, type VaporwaveMode } from './effects/vaporwave'
+import { createVectorEffect, vectorMeta, vectorModes, setVectorMode, type VectorMode } from './effects/vector'
+import { createQinghuaEffect, qinghuaMeta, qinghuaModes, setQinghuaMode, type QinghuaMode } from './effects/qinghua'
+import { createReinigerEffect, reinigerMeta, reinigerModes, setReinigerMode, type ReinigerMode } from './effects/reiniger'
+import { createPbnEffect, fillPaintByNumber, pbnMeta, pbnModes, setPbnMode, type PbnMode } from './effects/paintbynumber'
 /** Every stylize effect the switcher can show, in display order. */
 export type StyleCat = 'print' | 'hand' | 'craft' | 'line' | 'digital' | 'imaging'
 
+import { bloomTieDye, createTieDyeEffect, setTieDyeMode, tiedyeMeta, tiedyeModes, type TieDyeMode } from './effects/tiedye'
 /** rail groups, in display order */
 export const STYLE_CATS: { id: StyleCat; label: string }[] = [
   { id: 'print', label: '印刷与版画' },
@@ -182,6 +188,17 @@ export const STYLES: StyleDef[] = [
     onEnter: (fx) => drawChalk(fx),
   },
   {
+    id: 'pbn',
+    cat: 'hand',
+    short: '填色',
+    note: '编号色块 · 逐块涂满',
+    meta: pbnMeta,
+    create: withBg(createPbnEffect, pbnMeta.background),
+    modes: pbnModes,
+    setMode: (fx, id) => setPbnMode(fx, id as PbnMode),
+    onEnter: (fx) => fillPaintByNumber(fx),
+  },
+  {
     id: 'oil',
     cat: 'hand',
     short: '油画',
@@ -275,6 +292,27 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setCloisonneMode(fx, id as CloisonneMode),
   },
   {
+    id: 'qinghua',
+    cat: 'craft',
+    short: '青花',
+    note: '钴蓝分水 · 釉面',
+    meta: qinghuaMeta,
+    create: withBg(createQinghuaEffect, qinghuaMeta.background),
+    modes: qinghuaModes,
+    setMode: (fx, id) => setQinghuaMode(fx, id as QinghuaMode),
+  },
+  {
+    id: 'tiedye',
+    cat: 'craft',
+    short: '扎染',
+    note: '防染花纹 · 蓝靛',
+    meta: tiedyeMeta,
+    create: withBg(createTieDyeEffect, tiedyeMeta.background),
+    modes: tiedyeModes,
+    setMode: (fx, id) => setTieDyeMode(fx, id as TieDyeMode),
+    onEnter: (fx) => bloomTieDye(fx),
+  },
+  {
     id: 'roman',
     cat: 'craft',
     short: '镶嵌',
@@ -327,6 +365,17 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setTattooMode(fx, id as TattooMode),
   },
   {
+    id: 'reiniger',
+    cat: 'line',
+    short: '剪影',
+    note: '黑纸花边 · 默片',
+    meta: reinigerMeta,
+    // keep the effect's own key-colour background; show the tinted sky while the shader compiles
+    create: () => Object.assign(createReinigerEffect(), { previewBackground: reinigerMeta.background }),
+    modes: reinigerModes,
+    setMode: (fx, id) => setReinigerMode(fx, id as ReinigerMode),
+  },
+  {
     id: 'manual',
     cat: 'line',
     short: '说明书',
@@ -365,6 +414,26 @@ export const STYLES: StyleDef[] = [
     create: withBg(createGlitchEffect, glitchMeta.background),
     modes: glitchModes,
     setMode: (fx, id) => setGlitchMode(fx, id as GlitchMode),
+  },
+  {
+    id: 'vaporwave',
+    cat: 'digital',
+    short: '蒸汽波',
+    note: '落日网格 · 渐变映射',
+    meta: vaporwaveMeta,
+    create: withBg(createVaporwaveEffect, vaporwaveMeta.background),
+    modes: vaporwaveModes,
+    setMode: (fx, id) => setVaporwaveMode(fx, id as VaporwaveMode),
+  },
+  {
+    id: 'vector',
+    cat: 'digital',
+    short: '矢量屏',
+    note: '线框 · 荧光余辉',
+    meta: vectorMeta,
+    create: withBg(createVectorEffect, vectorMeta.background),
+    modes: vectorModes,
+    setMode: (fx, id) => setVectorMode(fx, id as VectorMode),
   },
   {
     id: 'hologram',
