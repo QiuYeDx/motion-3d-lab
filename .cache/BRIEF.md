@@ -81,3 +81,28 @@ CDP_PORT=<your port> PROFILE=<your profile> node --experimental-websocket shot.m
 ## Report (final message, concise)
 Per demo: what it shows, interactions, auto-loop, notable techniques, any limitations, and paths of 1–2 final
 screenshots (desktop + mobile). Mention any shared-file change you'd recommend.
+
+## Stylized-rendering demos (group `stylize`)
+All 风格化渲染 demos share `src/lib/stylize.tsx` — READ IT FIRST. It renders the R3F scene to an off-screen
+target (colour + depth, optional view-space normals with coverage in alpha) and redraws it with a full-screen
+effect shader. Do NOT write your own FBO pipeline; use `<Stylize effect={fx} … />` (it takes over rendering at
+useFrame priority 1). If the lib truly lacks something, say so in your report (don't edit it — others use it).
+The older `src/demos/shader/HalftonePrint.tsx` is the visual bar (it predates the lib).
+
+Each style is TWO files:
+1. `src/demos/stylize/effects/<name>.ts` — the reusable effect, no React:
+   `export function create<Name>Effect(): StylizeEffect` (fresh uniforms per call; glyph/palette textures built
+   from canvas inside), with defaults that look good on ANY reasonable lit scene (another demo — the style
+   switcher — will import it and drive it on a different scene without touching its uniforms except via the
+   modes you expose). Also export `<name>Meta = { title, en, background /* scene clear colour */, theme: 'light'|'dark' }`
+   and, if it has modes, a typed setter, e.g. `setAsciiMode(fx, 'braille')`, plus the list of modes
+   (`asciiModes: { id, label }[]`) so other demos can build a Seg from it. Mode switches inside one effect should
+   be smooth where possible (crossfade a uniform) — the wipe between different effects is handled by the lib.
+   GLSL defines `vec3 stylize(vec2 px)` (px = device pixels) and uses the header helpers (sceneAt, normalAt,
+   coverageAt, depthAt, luma, hash12, uTime, uDpr, uRes, uSceneRes). Size cells/lines in CSS px × uDpr so the look
+   is the same at DPR 1 and 2. Animate with `uTime` or the effect's `update(dt)` hook, never by re-rendering React.
+2. `src/demos/stylize/<Name>.tsx` — the showcase page: its own scene composed FOR the style (subject, lighting,
+   motion that shows the technique off), hero copy, dock with the modes and 1–2 parameters, a "原图" comparison
+   affordance (e.g. press-and-hold or a draggable split using `prev={createOriginalEffect()}` + `wipe`, or a lens),
+   drag-to-rotate with Motion inertia, auto-play when idle, `?poster`.
+Scene lighting matters a lot for these looks: strong key light + clear value structure + readable silhouettes.

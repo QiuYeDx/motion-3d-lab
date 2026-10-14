@@ -1,4 +1,4 @@
-// Env: CDP_PORT (default 9333), PROFILE (dir name, default edge-cdp-profile), FORMAT, CLIP
+// Env: CDP_PORT (default 9333), PROFILE (dir name, default edge-cdp-profile), FORMAT, CLIP, DSF (device scale)
 // Usage: node --experimental-websocket shot.mjs <outDir> <width>x<height> <waitMs> name=url[|asyncIIFE][||CLICKS:x,y@ms;x1,y1>x2,y2@ms] ...
 // Launches Edge (headful, off-screen so the real GPU/WebGPU is used), screenshots each URL via CDP.
 import { spawn, spawnSync } from 'node:child_process'
@@ -46,7 +46,7 @@ ws.onmessage = (e) => {
 }
 const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })) })
 
-await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false })
+await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: Number(process.env.DSF) || 1, mobile: false })
 await send('Page.enable')
 await send('Runtime.enable')
 for (const job of jobs) {
