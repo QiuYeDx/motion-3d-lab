@@ -12,6 +12,12 @@ import { createThermalEffect, thermalMeta, thermalModes, setThermalMode, type Th
 import { createOilEffect, oilMeta, oilModes, setOilMode, type OilMode } from './effects/oil'
 import { createWatercolorEffect, rebloomWatercolor, watercolorMeta, watercolorModes, setWatercolorMode, type WatercolorMode } from './effects/watercolor'
 import { createEmbroideryEffect, stitchInEmbroidery, embroideryMeta, embroideryModes, setEmbroideryMode, type EmbroideryMode } from './effects/embroidery'
+import { createCyanotypeEffect, developCyanotype, cyanotypeMeta, cyanotypeModes, setCyanotypeMode, type CyanotypeMode } from './effects/cyanotype'
+import { createGlitchEffect, glitchMeta, glitchModes, setGlitchMode, type GlitchMode } from './effects/glitch'
+import { createGlassEffect, glassMeta, glassModes, setGlassMode, type GlassMode } from './effects/stainedglass'
+import { createPapercutEffect, papercutMeta, papercutModes, setPapercutMode, type PapercutMode } from './effects/papercut'
+import { createCrayonEffect, drawCrayon, crayonMeta, crayonModes, setCrayonMode, type CrayonMode } from './effects/crayon'
+import { createPointillismEffect, pointillismMeta, pointillismModes, setPointillismMode, type PointillismMode } from './effects/pointillism'
 /** Every stylize effect the switcher can show, in display order. */
 export type StyleDef = {
   id: string
@@ -38,6 +44,16 @@ export const STYLES: StyleDef[] = [
     create: withBg(createHalftoneEffect, halftoneMeta.background),
     modes: halftoneModes,
     setMode: (fx, id) => setHalftoneMode(fx, id as HalftoneMode),
+  },
+  {
+    id: 'cyanotype',
+    short: '蓝晒',
+    note: '普鲁士蓝 · 刷涂边缘',
+    meta: cyanotypeMeta,
+    create: withBg(createCyanotypeEffect, cyanotypeMeta.background),
+    modes: cyanotypeModes,
+    setMode: (fx, id) => setCyanotypeMode(fx, id as CyanotypeMode),
+    onEnter: (fx) => developCyanotype(fx),
   },
   {
     id: 'dither',
@@ -67,6 +83,16 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setSketchMode(fx, id as SketchMode),
   },
   {
+    id: 'crayon',
+    short: '蜡笔',
+    note: '蜡质笔触 · 纸纹留白',
+    meta: crayonMeta,
+    create: withBg(createCrayonEffect, crayonMeta.background),
+    modes: crayonModes,
+    setMode: (fx, id) => setCrayonMode(fx, id as CrayonMode),
+    onEnter: (fx) => drawCrayon(fx),
+  },
+  {
     id: 'oil',
     short: '油画',
     note: 'Kuwahara · 厚涂笔触',
@@ -86,6 +112,15 @@ export const STYLES: StyleDef[] = [
     onEnter: (fx) => rebloomWatercolor(fx),
   },
   {
+    id: 'pointillism',
+    short: '点彩',
+    note: '并置纯色 · 视觉混合',
+    meta: pointillismMeta,
+    create: withBg(createPointillismEffect, pointillismMeta.background),
+    modes: pointillismModes,
+    setMode: (fx, id) => setPointillismMode(fx, id as PointillismMode),
+  },
+  {
     id: 'embroidery',
     short: '刺绣',
     note: '缎面针 · 丝线光泽',
@@ -94,6 +129,24 @@ export const STYLES: StyleDef[] = [
     modes: embroideryModes,
     setMode: (fx, id) => setEmbroideryMode(fx, id as EmbroideryMode),
     onEnter: (fx) => stitchInEmbroidery(fx),
+  },
+  {
+    id: 'glass',
+    short: '玻璃',
+    note: '铅条 · 背光透射',
+    meta: glassMeta,
+    create: withBg(createGlassEffect, glassMeta.background),
+    modes: glassModes,
+    setMode: (fx, id) => setGlassMode(fx, id as GlassMode),
+  },
+  {
+    id: 'papercut',
+    short: '剪纸',
+    note: '分层 · 投影',
+    meta: papercutMeta,
+    create: withBg(createPapercutEffect, papercutMeta.background),
+    modes: papercutModes,
+    setMode: (fx, id) => setPapercutMode(fx, id as PapercutMode),
   },
   {
     id: 'toon',
@@ -121,6 +174,15 @@ export const STYLES: StyleDef[] = [
     create: withBg(createPixelEffect, pixelMeta.background),
     modes: pixelModes,
     setMode: (fx, id) => setPixelMode(fx, id as PixelMode),
+  },
+  {
+    id: 'glitch',
+    short: '故障',
+    note: 'RGB 错位 · 像素排序',
+    meta: glitchMeta,
+    create: withBg(createGlitchEffect, glitchMeta.background),
+    modes: glitchModes,
+    setMode: (fx, id) => setGlitchMode(fx, id as GlitchMode),
   },
   {
     id: 'mosaic',

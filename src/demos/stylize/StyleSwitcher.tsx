@@ -144,6 +144,16 @@ export default function StyleSwitcher() {
     return () => clearInterval(id)
   }, [split])
 
+  // keep the active style visible in the rail (it scrolls once there are many styles)
+  useEffect(() => {
+    const el = stageRef.current?.querySelector<HTMLElement>('.ss-item[aria-pressed="true"]')
+    const rail = el?.parentElement
+    if (!el || !rail) return
+    const vertical = getComputedStyle(rail).flexDirection === 'column'
+    if (vertical) rail.scrollTo({ top: el.offsetTop - rail.clientHeight / 2 + el.offsetHeight / 2, behavior: 'smooth' })
+    else rail.scrollTo({ left: el.offsetLeft - rail.clientWidth / 2 + el.offsetWidth / 2, behavior: 'smooth' })
+  }, [phase.cur])
+
   const pickMode = (i: number, id: string) => {
     lastInput.current = performance.now()
     const s = STYLES[i]
@@ -322,11 +332,12 @@ export default function StyleSwitcher() {
         .ss-rail {
           position: absolute; right: clamp(16px, 2.4vw, 32px); top: 50%; transform: translateY(-50%);
           display: flex; flex-direction: column; gap: 2px; padding: 6px; border-radius: 18px; pointer-events: auto;
+          max-height: calc(100% - 200px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
           background: var(--glass); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
           box-shadow: 0 10px 34px rgba(0,0,0,0.12), inset 0 0 0 1px var(--line);
         }
         .ss-item {
-          position: relative; display: flex; align-items: baseline; gap: 10px; padding: 7px 14px 7px 10px; border: 0;
+          position: relative; display: flex; align-items: baseline; gap: 10px; padding: 6px 14px 6px 10px; border: 0; flex: none;
           border-radius: 12px; background: none; color: var(--fg-2); font: 500 13px/1.3 var(--sans, inherit); text-align: left;
           cursor: pointer; white-space: nowrap; transition: color 0.2s;
         }
@@ -337,6 +348,7 @@ export default function StyleSwitcher() {
         @media (max-width: 759px) {
           .ss-rail {
             top: auto; bottom: 74px; right: 12px; left: 12px; transform: none; flex-direction: row; overflow-x: auto;
+            max-height: none; overflow-y: hidden;
             scrollbar-width: none; border-radius: 14px;
           }
           .ss-rail::-webkit-scrollbar { display: none; }

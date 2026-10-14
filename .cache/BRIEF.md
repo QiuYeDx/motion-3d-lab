@@ -118,3 +118,14 @@ Additions (later batch):
   screenshot it by temporarily rendering your effect there in a scratch page, but don't edit StyleSwitcher/styles.ts.
 - On ANGLE/D3D a big multi-mode shader can fail to LINK with an empty log: pick the mode first and run each expensive
   routine once per pixel instead of inlining it per mode.
+
+## Shader compile cost (MANDATORY for stylize effects)
+The lib compiles effects asynchronously (renderer.compileAsync against the screen target) and shows the plain render
+until ready, then wipes in; your `update()` only starts ticking once the effect is visible. Still, a shader that
+takes seconds for ANGLE/D3D11 (HLSL/FXC) to compile delays your style and, worse, can block the main thread.
+Rules: choose the mode first and call each expensive routine from ONE call site per pixel; no derivative ops
+(fwidth/dFdx, implicit-LOD texture2D) inside loops or per-mode branches — hoist them, use textureLod/texelFetch;
+no dynamically indexed uniform arrays (put palettes in a small DataTexture + texelFetch); keep loops rollable.
+Measure first-load stall like this (must be < 300 ms): job URL = the GALLERY (`http://localhost:5196/?<uniq>`) with
+script `(async()=>{await new Promise(r=>setTimeout(r,1500));const g=[];let l=performance.now();location.hash='/<demo-id>';const t0=l;while(performance.now()-t0<9000){await new Promise(r=>requestAnimationFrame(r));const n=performance.now();g.push(n-l);l=n}return Math.max(...g)})()`
+and report the number.
