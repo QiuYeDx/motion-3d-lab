@@ -58,12 +58,10 @@ float lineCov(float ph, float fw, float w) {
   return mix(c, w, smoothstep(0.3, 0.55, fw));
 }
 
+float PAPER_K;   // paper texture, computed once per pixel and shared by every mode
+float PAPER_F;
 vec3 paperAt(vec2 cp, vec3 base) {
-  float blotch = snoise(vec3(cp * 0.0025, 3.0));
-  vec2 r1 = mat2(0.94, 0.34, -0.34, 0.94) * cp;
-  float fib = smoothstep(0.6, 0.95, snoise(vec3(r1 * vec2(0.012, 0.2), 1.0)));
-  float grain = hash12(floor(cp)) - 0.5;
-  return base * (1.0 - 0.03 * blotch - 0.025 * grain) - vec3(0.045, 0.045, 0.04) * fib * 0.6;
+  return base * PAPER_K - vec3(0.045, 0.045, 0.04) * PAPER_F;
 }
 
 // 0 = white … 1 = black
@@ -99,6 +97,10 @@ float EDGE;
 float PA, PB, PC, PW, PG;         // phases: main, cross, deep, woodcut, gouge (linocut)
 float FA, FB, FC, FW, FG;         // their screen-space widths (fwidth)
 vec2 CP;                          // CSS px
+vec2 Q;                           // CSS px from the medallion / block / sun centre
+float H;                          // frame size: view height, or width on portrait phones
+float G1, G2, FG1, FG2;           // guilloché phases + widths
+float DR, COVR;                   // linocut red block: darkness / coverage at the misregistered spot
 
 vec3 copper() {
   // main family: width follows darkness; fills in with the steeper family where the field goes sparse
@@ -113,15 +115,10 @@ vec3 copper() {
   float ink = max(max(a, aB), max(b, c)) * COV;
 
   // guilloché rosette around the subject (background only)
-  vec2 q = (CP - uCenter * uRes / uDpr);
-  float R = length(q);
-  float H = min(uRes.y, uRes.x * 1.25) / uDpr;  // frame size: view height, or width on portrait phones
-  float th = atan(q.y, q.x);
-  float g1 = (R + 7.0 * sin(th * 18.0) + 4.0 * sin(th * 7.0 + 1.0)) / 5.5;
-  float g2 = (R - 7.0 * sin(th * 18.0 + 0.6) + 4.0 * sin(th * 11.0)) / 5.5;
+  float R = length(Q);
   float ring = smoothstep(0.25 * H, 0.29 * H, R) * smoothstep(0.39 * H, 0.355 * H, R);
   float inner = smoothstep(0.25 * H, 0.2 * H, R) * 0.4;
-  float gl = max(lineCov(g1, fwidth(g1), 0.11), lineCov(g2, fwidth(g2), 0.11));
+  float gl = max(lineCov(G1, FG1, 0.11), lineCov(G2, FG2, 0.11));
   float gu = gl * (ring + inner) * 0.42 * (1.0 - COV);
   // a fine border ring
   float rim = (1.0 - smoothstep(0.4, 1.1, abs(R - 0.4 * H))) * 0.7 + (1.0 - smoothstep(0.3, 0.9, abs(R - 0.41 * H))) * 0.4;
@@ -146,8 +143,7 @@ vec3 woodcut() {
   ink *= 1.0 - nick * COV;
 
   // the uncut block behind the subject: black, with long horizontal gouges that open up toward the top
-  vec2 q = (CP - uCenter * uRes / uDpr);
-  float H = min(uRes.y, uRes.x * 1.25) / uDpr;  // frame size: view height, or width on portrait phones
+  vec2 q = Q;
   vec2 hb = vec2(0.4, 0.385) * H;
   vec2 bq = abs(q) - hb + 2.5 * vec2(snoise(vec3(CP.yy / 25.0, 1.0)), snoise(vec3(CP.xx / 25.0, 2.0)));
   float block = 1.0 - smoothstep(-0.8, 0.8, max(bq.x, bq.y));
@@ -170,16 +166,13 @@ vec3 woodcut() {
 }
 
 vec3 linocut() {
-  vec2 mis = vec2(2.2, -1.6) * uDpr;
-  // red block (sampled at a misregistered position)
-  vec2 pr = gl_FragCoord.xy + mis;
-  float dR = darkAt(pr);
-  float covR = coverageAt(pr);
+  // red block (sampled at a misregistered position — fetched up front in stylize())
+  float dR = DR;
+  float covR = COVR;
   float nR = snoise(vec3(CP / 14.0, 6.0));
   float red = covR * step(0.15 + 0.04 * nR, dR);
   // sun disc behind the subject, with horizontal gouges cut through it
-  vec2 q = (CP - uCenter * uRes / uDpr);
-  float H = min(uRes.y, uRes.x * 1.25) / uDpr;  // frame size: view height, or width on portrait phones
+  vec2 q = Q;
   float disc = 1.0 - smoothstep(0.36 * H - 1.0, 0.36 * H + 1.0, length(q) + 3.0 * snoise(vec3(CP / 30.0, 2.0)));
   float stripes = lineCov(PG, FG, smoothstep(-0.1 * H, 0.3 * H, -q.y) * 0.75);
   red = max(red, disc * (1.0 - stripes) * (1.0 - covR));
@@ -202,10 +195,10 @@ vec3 linocut() {
   return col;
 }
 
-vec3 modeCol(float m) {
-  if (m < 0.5) return copper();
-  if (m < 1.5) return woodcut();
-  return linocut();
+// weight of mode m this frame (1 for the current mode; split between A and B while crossfading)
+float modeW(float m) {
+  float k = uModeMix > 0.0 ? smoothstep(0.0, 1.0, uModeMix) : 0.0;
+  return (abs(uModeA - m) < 0.5 ? 1.0 - k : 0.0) + (abs(uModeB - m) < 0.5 ? k : 0.0);
 }
 
 vec3 stylize(vec2 px) {
@@ -224,10 +217,32 @@ vec3 stylize(vec2 px) {
   FA = fwidth(PA); FB = fwidth(PB); FC = fwidth(PC); FW = fwidth(PW); FG = fwidth(PG);
   EDGE = edgeAt(px, max(1.0, 0.9 * uDpr));
 
-  vec3 a = modeCol(uModeA);
-  if (uModeMix <= 0.0) return a;
-  vec3 b = modeCol(uModeB);
-  return mix(a, b, smoothstep(0.0, 1.0, uModeMix));
+  Q = CP - uCenter * uRes / uDpr;
+  H = min(uRes.y, uRes.x * 1.25) / uDpr;
+  float R = length(Q);
+  float th = atan(Q.y, Q.x);
+  G1 = (R + 7.0 * sin(th * 18.0) + 4.0 * sin(th * 7.0 + 1.0)) / 5.5;
+  G2 = (R - 7.0 * sin(th * 18.0 + 0.6) + 4.0 * sin(th * 11.0)) / 5.5;
+  FG1 = fwidth(G1); FG2 = fwidth(G2);
+
+  float w0 = modeW(0.0), w1 = modeW(1.0), w2 = modeW(2.0);
+
+  // every texture fetch and derivative happens here, outside the per-mode branches, so ANGLE's HLSL
+  // compiler never has to flatten them; each mode routine is inlined exactly once.
+  vec2 pr = px + vec2(2.2, -1.6) * uDpr;
+  DR = darkAt(pr);
+  COVR = coverageAt(pr);
+
+  float blotch = snoise(vec3(CP * 0.0025, 3.0));
+  vec2 r1 = mat2(0.94, 0.34, -0.34, 0.94) * CP;
+  PAPER_F = smoothstep(0.6, 0.95, snoise(vec3(r1 * vec2(0.012, 0.2), 1.0))) * 0.6;
+  PAPER_K = 1.0 - 0.03 * blotch - 0.025 * (hash12(floor(CP)) - 0.5);
+
+  vec3 col = vec3(0.0);
+  if (w0 > 0.0) col += w0 * copper();
+  if (w1 > 0.0) col += w1 * woodcut();
+  if (w2 > 0.0) col += w2 * linocut();
+  return col;
 }
 `
 

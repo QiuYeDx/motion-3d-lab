@@ -434,6 +434,10 @@ export default function Embroidery() {
   const [mobile] = useState(MOBILE)
   const fx = useMemo(() => createEmbroideryEffect(), [])
   const original = useMemo(createOriginalEffect, [])
+  // start the shader's background compile from an effect (before the first frame), so it is compiled for
+  // the screen; the in-frame isReady() path compiles it while a render target is bound (linear-output
+  // variant), which then forces a second, blocking compile at the first real draw
+  const preload = useMemo(() => [fx], [fx])
   const split = useOriginalSplit(MOBILE ? 0.5 : 0.62)
   const first = useRef(true)
 
@@ -495,7 +499,7 @@ export default function Embroidery() {
     >
       <style>{css}</style>
       <Canvas dpr={[1, 2]} gl={{ antialias: false, alpha: false }} camera={{ position: [0, 0, 12], fov: 30 }}>
-        <Stylize effect={split.on ? original : fx} prev={split.on ? fx : null} wipe={split.wipe} background={embroideryMeta.background} />
+        <Stylize effect={split.on ? original : fx} prev={split.on ? fx : null} wipe={split.wipe} background={embroideryMeta.background} preload={preload} />
         <Pond rx={rx} ry={ry} />
       </Canvas>
 

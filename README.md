@@ -110,7 +110,9 @@ public/posters/           目录卡片封面（由下方脚本截取）
 - 效果是纯数据：`src/demos/stylize/effects/*.ts` 各自导出 `createXEffect()`，GLSL 只需定义 `vec3 stylize(vec2 px)`，可用 `sceneAt / normalAt / depthAt / coverageAt` 等公共函数；网格与线宽一律按 CSS px × DPR 计算。
 - 同一套接口支持 `prev` + `wipe`：两种效果沿同一条斜线擦除切换，也用来做“原图 / 风格”分割对比（`createOriginalEffect()`）。
 - `src/demos/stylize/styles.ts` 是切换器的风格清单，新增一种画风只要写一个效果文件并在这里登记。
-- `preload` 让切换器在空闲时用 `renderer.compileAsync` 逐个预编译所有画风的着色器，避免第一次切到重型效果（刺绣、油画）时卡顿数秒。
+- 着色器一律异步编译（`renderer.compileAsync` + KHR_parallel_shader_compile）：编译期间先显示普通渲染，就绪后斜向擦除进入风格画面；效果的 `update()` 也从这时才开始计时。`preload` 让切换器在空闲时逐个预编译所有画风。
+- 坑：异步编译必须在**屏幕目标**下发起（`setRenderTarget(null)`），否则 three.js 编出的是离屏（线性输出）变体，真正画到屏幕时又同步链接一次，Windows 上 ANGLE/D3D 会卡住主线程数秒。
+- 写大着色器时：先选模式再只调用一次昂贵的例程；循环里用 `textureLod/texelFetch`、导数提到循环外；调色板放进 DataTexture 而不是动态索引的 uniform 数组——这些都直接决定 D3D 的编译时间。
 
 ### Motion 与 three.js 的配合方式
 
@@ -141,4 +143,5 @@ URL 带 `?poster` 时等距场景会居中，`body.poster` 会隐藏所有 UI �
 - R3F 9 里把 `uniforms={obj}` 作为 JSX 属性传给 `<shaderMaterial>` 会复制标量 uniform，之后写 `obj.uX.value` 不生效。手写着色器统一用 `new THREE.ShaderMaterial()` + `material={mat}`（见 `src/demos/shader/glsl.ts` 的 `useShaderMaterial`）。
 - 透明画布（`alpha: true`）上的加法混合会把 alpha 写成 1，出现暗块；需要时改用不透明画布或自定义混合。
 - CDP 合成的指针事件 `offsetX/Y` 只有一半，测 R3F 点击要发真实鼠标事件（`Input.dispatchMouseEvent`）。
+- 截图脚本用无头 Chrome，不要用 Edge 或任何可见窗口（会弹出打扰使用者的全局浮窗）。
 - 物理 demo 的 Rapier wasm 打进了 ~2.2 MB 的懒加载分块，只在打开该 demo 时加载。

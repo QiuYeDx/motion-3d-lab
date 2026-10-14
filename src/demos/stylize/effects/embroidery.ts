@@ -106,14 +106,18 @@ function oklab(hex: string) {
 const FRAG = /* glsl */ `
 #define NP ${THREAD_PALETTE.length}
 #define PI 3.14159265
-uniform vec3 uPalRgb[NP];
-uniform vec3 uPalLab[NP];
-uniform float uPalFam[NP];
-uniform float uFamOrder[10];
-uniform vec4 uMA[3];   // cell (CSS px), thread width (CSS px), gloss, fibre twist angle
-uniform vec4 uMB[3];   // two-colour dither, outline width (CSS px), outline darkness, needle-hole depth
-uniform vec4 uMC[3];   // cloth (0 linen · 1 silk · 2 denim), felt patch, sheen exponent, ply groove depth
-uniform vec4 uMD[3];   // outline slant (0 back stitch · 1 stem stitch), strands, filament striation, puckering
+// thread card as an NP×2 float texture (fetched — dynamically indexed uniform arrays become long switch
+// chains on ANGLE/D3D): row 0 = OKLab + family, row 1 = sRGB + stitch-in order of the family
+uniform sampler2D tPal;
+uniform int uNP;   // palette size and patch count as uniforms: keeps ANGLE/FXC from unrolling the loops
+uniform int uN9;
+// parameters of the incoming (T) and outgoing (F) mode:
+//  A cell (CSS px), thread width (CSS px), gloss, fibre twist angle
+//  B two-colour dither, outline width (CSS px), outline darkness, needle-hole depth
+//  C cloth (0 linen · 1 silk · 2 denim), felt patch, sheen exponent, ply groove depth
+//  D outline slant (0 back stitch · 1 stem stitch), strands, filament striation, puckering
+uniform vec4 uTA; uniform vec4 uTB; uniform vec4 uTC; uniform vec4 uTD;
+uniform vec4 uFA; uniform vec4 uFB; uniform vec4 uFC; uniform vec4 uFD;
 uniform float uDensity;
 uniform float uFrom;
 uniform float uTo;
@@ -144,6 +148,23 @@ float vnoise(vec2 p) {
 }
 vec2 hash22(vec2 p) { return vec2(hash12(p), hash12(p + vec2(37.1, 11.7))); }
 
+// explicit-LOD fetches: no implicit derivatives, so the loops below can stay rolled in ANGLE's HLSL
+vec3 sceneL(vec2 px) {
+  vec3 c = textureLod(tScene, px / uRes, 0.0).rgb * uExposure;
+  c = c / (1.0 + c * 0.12);
+  return clamp(linearToSrgb(c), 0.0, 1.0);
+}
+vec4 nrmL(vec2 px) { return textureLod(tNormal, px / uRes, 0.0); }
+float covL(vec2 px) { return textureLod(tNormal, px / uRes, 0.0).a; }
+float depthL(vec2 px) {
+  float d = textureLod(tDepth, px / uRes, 0.0).r;
+  if (uOrtho > 0.5) return uNear + d * (uFar - uNear);
+  float z = d * 2.0 - 1.0;
+  return (2.0 * uNear * uFar) / (uFar + uNear - z * (uFar - uNear));
+}
+vec4 palA(int i) { return texelFetch(tPal, ivec2(i, 0), 0); }
+vec4 palB(int i) { return texelFetch(tPal, ivec2(i, 1), 0); }
+
 vec3 toLab(vec3 c) {
   vec3 l = srgbToLinear(c);
   vec3 lms = vec3(
@@ -160,8 +181,8 @@ float palDist(vec3 a, vec3 b) { vec3 d = a - b; return d.x * d.x * 0.6 + (d.y * 
 // nearest thread and the runner-up
 void classify(vec3 lab, out int i1, out int i2, out float d1, out float d2) {
   d1 = 1e9; d2 = 1e9; i1 = 0; i2 = 0;
-  for (int i = 0; i < NP; i++) {
-    float d = palDist(lab, uPalLab[i]);
+  for (int i = 0; i < uNP; i++) {
+    float d = palDist(lab, palA(i).xyz);
     if (d < d1) { d2 = d1; i2 = i1; d1 = d; i1 = i; }
     else if (d < d2) { d2 = d; i2 = i; }
   }
@@ -196,29 +217,26 @@ vec3 weave(vec2 cp, float P, float twill, float slub) {
   return vec3(h, warpTop, tid);
 }
 
+// linen (plain weave, irregular slubbed threads, flax flecks) · silk (fine even weave, broad slow lustre) ·
+// denim (3/1 twill, indigo warp with ring-dyed fading streaks, ecru weft peeking through)
 vec3 fabricAt(vec2 cp, float type) {
-  if (type < 0.5) {
-    // linen: plain weave, irregular slubbed threads, flax flecks
-    vec3 w = weave(cp, 3.2, 0.0, 0.24);
-    float tone = 0.93 + 0.1 * hash12(vec2(w.z, 3.0)) - 0.05 * vnoise(vec2(w.z * 1.7, (w.y > 0.5 ? cp.y : cp.x) * 0.08));
-    float fleck = step(0.992, hash12(vec2(w.z, floor((w.y > 0.5 ? cp.y : cp.x) / 7.0))));
+  bool lin = type < 0.5, silk = type > 0.5 && type < 1.5;
+  vec3 w = weave(cp, lin ? 3.2 : (silk ? 2.0 : 2.4), lin || silk ? 0.0 : 1.0, lin ? 0.24 : (silk ? 0.05 : 0.16));
+  float along = w.y > 0.5 ? cp.y : cp.x;
+  if (lin) {
+    float tone = 0.93 + 0.1 * hash12(vec2(w.z, 3.0)) - 0.05 * vnoise(vec2(w.z * 1.7, along * 0.08));
+    float fleck = step(0.992, hash12(vec2(w.z, floor(along / 7.0))));
     vec3 c = uLinen * tone * (0.7 + 0.36 * w.x);
     c = mix(c, c * vec3(0.72, 0.66, 0.58), fleck * w.x);
     return c * (0.97 + 0.05 * vnoise(cp * 0.012));
   }
-  if (type < 1.5) {
-    // silk: fine, even weave with a broad, slowly moving lustre
-    vec3 w = weave(cp, 2.0, 0.0, 0.05);
+  if (silk) {
     float lustre = 0.5 + 0.5 * sin(cp.x * 0.006 + cp.y * 0.0035 + 2.0 * vnoise(cp * 0.004) + LIGHT.x * 2.5);
-    vec3 c = uSilk * (0.9 + 0.12 * w.x);
-    return c + vec3(0.05, 0.045, 0.04) * lustre * (w.y > 0.5 ? 1.0 : 0.6);
+    return uSilk * (0.9 + 0.12 * w.x) + vec3(0.05, 0.045, 0.04) * lustre * (w.y > 0.5 ? 1.0 : 0.6);
   }
-  // denim: 3/1 twill, indigo warp with ring-dyed fading streaks, ecru weft peeking through
-  vec3 w = weave(cp, 2.4, 1.0, 0.16);
   float fade = vnoise(vec2(w.z * 0.9, cp.y * 0.012)) * 0.6 + vnoise(cp * vec2(0.01, 0.003)) * 0.4;
   vec3 warp = uDenim * (0.78 + 0.5 * fade) * (0.94 + 0.12 * hash12(vec2(w.z, 9.0)));
-  vec3 c = mix(uWeft * (0.8 + 0.25 * fade), warp, w.y) * (0.62 + 0.46 * w.x);
-  return c;
+  return mix(uWeft * (0.8 + 0.25 * fade), warp, w.y) * (0.62 + 0.46 * w.x);
 }
 
 vec3 felt(vec2 cp) {
@@ -241,8 +259,8 @@ vec2 cellDir(vec2 c, float S) {
   float l0 = 0.0, l1 = 0.0, l2 = 0.0;
   for (int k = 0; k < 3; k++) {
     vec2 p = c + (k == 0 ? vec2(0.0) : (k == 1 ? o1 : o2));
-    vec4 n = texture2D(tNormal, p / uRes);
-    float l = luma(sceneAt(p));
+    vec4 n = nrmL(p);
+    float l = luma(sceneL(p));
     if (k == 0) l0 = l; else if (k == 1) l1 = l; else l2 = l;
     if (n.a > 0.5) {
       vec2 v = n.xy * 2.0 - 1.0;
@@ -309,12 +327,11 @@ vec3 EC;  // darker side's colour
 // x = edge strength, y = tangent angle
 vec2 edgeAt(vec2 px, float r) {
   vec2 dx = vec2(r, 0.0), dy = vec2(0.0, r);
-  vec3 cL = sceneAt(px - dx), cR = sceneAt(px + dx), cD = sceneAt(px - dy), cU = sceneAt(px + dy);
-  vec4 nL = texture2D(tNormal, (px - dx) / uRes), nR = texture2D(tNormal, (px + dx) / uRes);
-  vec4 nD = texture2D(tNormal, (px - dy) / uRes), nU = texture2D(tNormal, (px + dy) / uRes);
+  vec3 cL = sceneL(px - dx), cR = sceneL(px + dx), cD = sceneL(px - dy), cU = sceneL(px + dy);
+  vec4 nL = nrmL(px - dx), nR = nrmL(px + dx), nD = nrmL(px - dy), nU = nrmL(px + dy);
   vec3 lL = toLab(cL), lR = toLab(cR), lD = toLab(cD), lU = toLab(cU);
-  float i0 = 1.0 / depthAt(px);
-  float iL = 1.0 / depthAt(px - dx), iR = 1.0 / depthAt(px + dx), iD = 1.0 / depthAt(px - dy), iU = 1.0 / depthAt(px + dy);
+  float i0 = 1.0 / depthL(px);
+  float iL = 1.0 / depthL(px - dx), iR = 1.0 / depthL(px + dx), iD = 1.0 / depthL(px - dy), iU = 1.0 / depthL(px + dy);
   vec3 wl = vec3(0.6, 1.3, 1.3);
   vec3 gxc = (lR - lL) * wl * min(nL.a, nR.a), gyc = (lU - lD) * wl * min(nD.a, nU.a);
   float gxv = nR.a - nL.a, gyv = nU.a - nD.a;
@@ -343,16 +360,23 @@ vec2 edgeAt(vec2 px, float r) {
 
 /* ---------------------------------------------------------------- one mode, one pass */
 
-vec3 embroider(vec2 px, int m, float rev, float sig) {
-  vec4 A = uMA[m], B = uMB[m], C = uMC[m], D = uMD[m];
+vec3 embroider(vec2 px, vec3 cloth, vec4 A, vec4 B, vec4 C, vec4 D, float rev, float sig) {
   float dens = uDensity;
   float S = A.x * dens * uDpr;
   float W = A.y * mix(1.0, dens, 0.6) * uDpr;
   float RH = max(floor(0.7 * S / W + 0.5), 1.0);
-  float cov = coverageAt(px);
+  float cov = covL(px);
+
+  // the one thread shaded in this pass (felt-patch border or satin stitch): colour, frame, coordinates
+  float draw = 0.0, dim = 1.0;
+  vec3 bCol = vec3(0.0);
+  vec2 bD = vec2(1.0, 0.0);
+  vec4 bG = vec4(0.0);    // along, across, -, along px
+  float bSeed = 0.0;
+  vec4 bB = B;
 
   /* cloth (+ felt patch) */
-  vec3 col = fabricAt(CP, C.x);
+  vec3 col = cloth;
   if (C.y > 0.5) {
     vec2 pc = HON > 0.5 ? HC : uRes / uDpr * 0.5;
     float PR = HON > 0.5 ? HR * 0.88 : min(uRes.x, uRes.y) / uDpr * 0.45;
@@ -370,8 +394,9 @@ vec3 embroider(vec2 px, int m, float rev, float sig) {
       float a = (rp - (PR - bw * 0.5)) / (bw * 0.5);
       float ph = th * N + a * 0.35;
       float s = fract(ph) * 2.0 - 1.0;
-      float aa = a * 0.82;
-      col = shadeThread(uBorder, rd, vec2(-rd.y, rd.x), aa, s, rp * uDpr, hash12(vec2(floor(ph), 3.0)), W, A, vec4(B.xyz, 0.0), C, D);
+      draw = 1.0;
+      bCol = uBorder; bD = rd; bG = vec4(a * 0.82, s, 0.0, rp * uDpr); bSeed = hash12(vec2(floor(ph), 3.0));
+      bB = vec4(B.xyz, 0.0);
     } else {
       float ps = length(CP - SD * 5.0 - pc);
       col *= 1.0 - 0.38 * (1.0 - smoothstep(PR - 2.0, PR + 6.0, ps));
@@ -379,11 +404,11 @@ vec3 embroider(vec2 px, int m, float rev, float sig) {
   }
   // embroidery shadow on the cloth + puckering where the stitching pulls it
   if (cov < 0.5) {
-    float sh = (coverageAt(px - SD * 2.0 * uDpr) + coverageAt(px - SD * 4.0 * uDpr) + coverageAt(px - SD * 7.0 * uDpr)) / 3.0;
+    float sh = (covL(px - SD * 2.0 * uDpr) + covL(px - SD * 4.0 * uDpr) + covL(px - SD * 7.0 * uDpr)) / 3.0;
     float near = 0.0;
     for (int k = 0; k < 6; k++) {
       float an = float(k) * 1.0472 + 0.3;
-      near += coverageAt(px + vec2(cos(an), sin(an)) * 13.0 * uDpr);
+      near += covL(px + vec2(cos(an), sin(an)) * 13.0 * uDpr);
     }
     near /= 6.0;
     vec2 pcn = HON > 0.5 ? HC : uRes / uDpr * 0.5;
@@ -393,34 +418,32 @@ vec3 embroider(vec2 px, int m, float rev, float sig) {
     float done = smoothstep(0.0, 0.25, rev - 0.5 * sig - 0.4);
     float st = min(sh * 1.3, 1.0) * done;
     near *= done;
-    col *= (1.0 - 0.3 * st) * (1.0 - 0.07 * near * D.w) * (1.0 + 0.06 * near * D.w * wr);
+    dim = (1.0 - 0.3 * st) * (1.0 - 0.07 * near * D.w) * (1.0 + 0.06 * near * D.w * wr);
+    col *= dim;
   }
 
   /* satin stitches */
   if (cov > 0.5) {
-    vec3 pLab = toLab(sceneAt(px));
+    vec3 pLab = toLab(sceneL(px));
     int p1, p2;
     float pd1, pd2;
     classify(pLab, p1, p2, pd1, pd2);
-    float pFam = uPalFam[p1];
+    float pFam = palA(p1).w;
 
     vec2 so = SD * 0.42 * W;
     vec2 g0 = floor(px / S);
     float reach = 1.5 * S;
     float bestP = -1.0, fbP = -1.0;
-    vec2 bD = vec2(1.0, 0.0), fD = vec2(1.0, 0.0);
-    vec4 bG = vec4(0.0), fG = vec4(0.0);
-    vec3 bCol = vec3(0.0);
-    float bSeed = 0.0, fSeed = 0.0;
-    float shP[9];
+    vec2 fD = vec2(1.0, 0.0);
+    vec4 fG = vec4(0.0);
+    float fSeed = 0.0;
+    float shMax = -1.0;   // highest priority among the stitches whose shadow falls here
     float nOver = 9.0;
     vec2 nD = vec2(1.0, 0.0);
     vec4 nG = vec4(0.0);
-    for (int j = 0; j < 3; j++) {
-      for (int i = 0; i < 3; i++) {
-        int k = j * 3 + i;
-        shP[k] = -1.0;
-        vec2 id = g0 + vec2(float(i - 1), float(j - 1));
+    for (int k = 0; k < uN9; k++) {
+      {
+        vec2 id = g0 + vec2(float(k - (k / 3) * 3 - 1), float(k / 3 - 1));
         vec2 c = (id + 0.5 + (hash22(id) - 0.5) * 0.6) * S;
         vec2 q = px - c;
         if (max(abs(q.x), abs(q.y)) > reach) continue;
@@ -428,7 +451,7 @@ vec3 embroider(vec2 px, int m, float rev, float sig) {
         vec2 d = cellDir(c, S);
         float off, hl;
         vec4 gs = stitchAt(q - so, c, d, id, S, W, RH, off, hl);
-        if (covered(gs)) shP[k] = prio;
+        if (covered(gs)) shMax = max(shMax, prio);
         vec4 gg = stitchAt(q, c, d, id, S, W, RH, off, hl);
         float over = max(abs(gg.x) - 1.0, abs(gg.y) - 0.95);
         if (over < nOver) { nOver = over; nD = d; nG = gg; }
@@ -438,45 +461,52 @@ vec3 embroider(vec2 px, int m, float rev, float sig) {
         if (prio <= bestP) continue;
         vec2 nv = vec2(-d.y, d.x);
         vec2 sc = c + d * off + nv * gg.z;   // the stitch's own centre: one colour per stitch
-        if (coverageAt(sc) < 0.5) continue;
-        vec3 sLab = toLab(sceneAt(sc));
+        if (covL(sc) < 0.5) continue;
+        vec3 sLab = toLab(sceneL(sc));
         int s1, s2;
         float sd1, sd2;
         classify(sLab, s1, s2, sd1, sd2);
         // clipped to its colour family (hysteresis: the pixel adopts the stitch's thread when close)
-        if (abs(uPalFam[s1] - pFam) > 0.5 && palDist(pLab, uPalLab[s1]) > pd1 + 0.0025) continue;
+        vec4 pa1 = palA(s1);
+        if (abs(pa1.w - pFam) > 0.5 && palDist(pLab, pa1.xyz) > pd1 + 0.0025) continue;
         // 穿针: stitched region by region, each stitch drawn from one hole to the other
-        float key = 0.5 * sweep(sc) + 0.38 * uFamOrder[int(uPalFam[s1] + 0.5)] + 0.12 * seed;
+        float key = 0.5 * sweep(sc) + 0.38 * palB(s1).w + 0.12 * seed;
         float prog = clamp((rev - key) / 0.06, 0.0, 1.0);
         if (gg.x * (seed > 0.5 ? 1.0 : -1.0) > -1.0 + 2.0 * prog) continue;
         // long-and-short shading: some stitches take the runner-up thread
         float tt = sd1 / max(sd1 + sd2, 1e-6);
-        float pick = 0.5 * smoothstep(0.5 - 0.5 * B.x, 0.501, tt) * step(sd2, 0.03) * step(abs(uPalFam[s2] - uPalFam[s1]), 0.5);
+        float pick = 0.5 * smoothstep(0.5 - 0.5 * B.x, 0.501, tt) * step(sd2, 0.03) * step(abs(palA(s2).w - pa1.w), 0.5);
         int ci = hash12(id * 5.1 + gg.z * 0.17 + 0.3) < pick ? s2 : s1;
-        bestP = prio; bD = d; bG = gg; bCol = uPalRgb[ci]; bSeed = seed;
+        bestP = prio; bD = d; bG = gg; bCol = palB(ci).rgb; bSeed = seed;
       }
     }
     float topP = -1.0;
+    dim = 1.0;
     if (bestP >= 0.0) {
-      col = shadeThread(bCol, bD, vec2(-bD.y, bD.x), bG.x, bG.y, bG.w, bSeed, W, A, B, C, D);
+      draw = 1.0;
       topP = bestP;
     } else if (fbP >= 0.0) {
       // thin features / borders: the top stitch here, in this pixel's own thread
-      float key = 0.5 * sig + 0.38 * uFamOrder[int(pFam + 0.5)] + 0.12 * fSeed;
+      vec4 pb = palB(p1);
+      float key = 0.5 * sig + 0.38 * pb.w + 0.12 * fSeed;
       float prog = clamp((rev - key) / 0.06, 0.0, 1.0);
       if (fG.x * (fSeed > 0.5 ? 1.0 : -1.0) <= -1.0 + 2.0 * prog) {
-        col = shadeThread(uPalRgb[p1], fD, vec2(-fD.y, fD.x), fG.x, fG.y, fG.w, fSeed, W, A, B, C, D);
+        draw = 1.0;
         topP = fbP;
+        bCol = pb.rgb; bD = fD; bG = fG; bSeed = fSeed;
       }
     } else if (rev > 1.0) {
       // no stitch lands here: the nearest one, a little longer
-      col = shadeThread(uPalRgb[p1], nD, vec2(-nD.y, nD.x), clamp(nG.x, -0.9, 0.9), clamp(nG.y, -0.9, 0.9), nG.w, 0.5, W, A, B, C, D) * 0.85;
+      draw = 1.0;
+      dim = 0.85;
+      bCol = palB(p1).rgb; bD = nD; bG = vec4(clamp(nG.xy, -0.9, 0.9), nG.zw); bSeed = 0.5;
     }
     // stitches lying above this one cast short shadows on it
-    float shN = 0.0;
-    for (int k = 0; k < 9; k++) shN += step(topP + 1e-4, shP[k]);
-    col *= 1.0 - 0.13 * min(shN, 1.0) * smoothstep(1.0, 1.2, rev);
+    dim *= 1.0 - 0.13 * step(topP + 1e-4, shMax) * smoothstep(1.0, 1.2, rev);
+    col *= dim;
   }
+  // one shading call site for border and stitch (every call is inlined by the HLSL compiler)
+  if (draw > 0.5) col = shadeThread(bCol, bD, vec2(-bD.y, bD.x), bG.x, bG.y, bG.w, bSeed, W, A, bB, C, D) * dim;
 
   /* outlines (stem / back stitch) */
   float r = max(B.y * 0.5 * sqrt(dens) * uDpr, 0.8);
@@ -492,18 +522,13 @@ vec3 embroider(vec2 px, int m, float rev, float sig) {
     float ac = dot(px, tn) / (Ow * 1.5);
     vec3 oc = EC * B.z;
     oc = clamp(mix(vec3(luma(oc)), oc, 1.25), 0.0, 1.0);
-    vec3 thr;
-    if (D.x > 0.5) {
-      // stem stitch: overlapping slanted stitches → a twisted rope
-      float ph = al + ac * 1.1;
-      float s = fract(ph) * 2.0 - 1.0;
-      thr = shadeThread(oc, normalize(t + tn * 0.6), normalize(tn - t * 0.6), 0.0, s, al * Ow, floor(ph) * 0.37, Ow * 0.8, A, B, C, D);
-    } else {
-      // back stitch: short dashes, end to end, with needle holes between
-      float ph = al * 0.42;
-      float a = fract(ph) * 2.0 - 1.0;
-      thr = shadeThread(oc, t, tn, a * 1.08, 0.0, al * Ow, floor(ph) * 0.37, Ow * 0.8, A, B, C, D);
-    }
+    // stem stitch: overlapping slanted stitches → a twisted rope; back stitch: short dashes end to end
+    bool stem = D.x > 0.5;
+    float ph = stem ? al + ac * 1.1 : al * 0.42;
+    float f2 = fract(ph) * 2.0 - 1.0;
+    vec2 od = stem ? normalize(t + tn * 0.6) : t;
+    vec2 on = stem ? normalize(tn - t * 0.6) : tn;
+    vec3 thr = shadeThread(oc, od, on, stem ? 0.0 : f2 * 1.08, stem ? f2 : 0.0, al * Ow, floor(ph) * 0.37, Ow * 0.8, A, B, C, D);
     col = mix(col, thr, e);
   }
   return col;
@@ -520,7 +545,7 @@ vec3 tableAt(vec2 cp) {
   return c;
 }
 
-vec3 outside(vec2 rel, float rho, float fabT) {
+vec3 outside(vec2 rel, float rho, float fabT, vec3 cloth) {
   float RW = clamp(HR * 0.075, 11.0, 28.0);
   vec2 dir = rel / max(rho, 1e-3);
   vec3 col = tableAt(CP);
@@ -531,7 +556,7 @@ vec3 outside(vec2 rel, float rho, float fabT) {
   col *= 1.0 - 0.2 * (1.0 - smoothstep(fe - 8.0, fe + 10.0, rs));
   float fray = (hash12(vec2(floor(atan(rel.y, rel.x) * HR * 0.6), 1.0)) - 0.5) * (fabT > 0.5 && fabT < 1.5 ? 1.2 : 3.0);
   if (rho < fe + 3.0) {
-    vec3 f = fabricAt(CP, fabT);
+    vec3 f = cloth;
     float ang = atan(rel.y, rel.x);
     float fold = sin(ang * 23.0 + vnoise(dir * 4.0) * 6.0);
     f *= 1.0 + 0.07 * fold * smoothstep(HR + RW, fe, rho);
@@ -599,28 +624,23 @@ vec3 stylize(vec2 px) {
   // stitched in (rev = how far the stitching has got; 9 = all done)
   float sig = sweep(px);
   float front = uMix * 2.6 - 0.1 + (vnoise(CP / 38.0) - 0.5) * 0.14;
-  int m;
-  float rev = 9.0;
-  if (uFromEmpty > 0.5 || sig < front || uMix >= 1.0) {
-    m = int(uTo + 0.5);
-    if (uMix < 1.0) rev = uMix * 1.3 - 0.06;
-  } else {
-    m = int(uFrom + 0.5);
-  }
+  bool to = uFromEmpty > 0.5 || sig < front || uMix >= 1.0;
+  float rev = to && uMix < 1.0 ? uMix * 1.3 - 0.06 : 9.0;
+  vec4 A = to ? uTA : uFA, B = to ? uTB : uFB, C = to ? uTC : uFC, D = to ? uTD : uFD;
 
+  vec3 cloth = fabricAt(CP, C.x);
+  vec2 rel = CP - HC;
+  float rho = length(rel);
+  if (HON > 0.5 && rho > HR) return clamp(outside(rel, rho, C.x, cloth), 0.0, 1.0);
+  vec3 col = embroider(px, cloth, A, B, C, D, rev, sig);
   if (HON > 0.5) {
-    vec2 rel = CP - HC;
-    float rho = length(rel);
-    if (rho > HR) return clamp(outside(rel, rho, uMC[m].x), 0.0, 1.0);
-    vec3 col = embroider(px, m, rev, sig);
     // fabric drum-tight over the inner ring: a ridge at the rim, the outer ring's shadow, tension shading
     float x = (HR - rho);
     col *= 1.0 + 0.1 * (1.0 - smoothstep(0.0, 3.0, abs(x - 2.5))) - 0.12 * (1.0 - smoothstep(0.0, 1.5, x));
     col *= 1.0 - 0.3 * smoothstep(HR - 3.0, HR + 4.0, length(rel - SD * 9.0));
     col *= 1.0 - 0.06 * smoothstep(HR * 0.6, HR, rho);
-    return clamp(col, 0.0, 1.0);
   }
-  return clamp(embroider(px, m, rev, sig), 0.0, 1.0);
+  return clamp(col, 0.0, 1.0);
 }
 `
 
@@ -635,17 +655,31 @@ const stateOf = (fx: StylizeEffect) => (fx.uniforms ? STATE.get(fx.uniforms) : u
 export function createEmbroideryEffect(init: { mode?: EmbroideryMode; density?: number } = {}): StylizeEffect {
   const mode = init.mode ?? 'satin'
   const dens = init.density ?? 1
-  const order = ['satin', 'suzhou', 'denim'] as EmbroideryMode[]
-  const vecs = (k: 'A' | 'B' | 'C' | 'D') => order.map((m) => new THREE.Vector4(...(MODE_PARAMS[m][k] as [number, number, number, number])))
+  // thread card texture: row 0 = OKLab + family, row 1 = sRGB + stitch-in order of the family
+  const N = THREAD_PALETTE.length
+  const pal = new Float32Array(N * 2 * 4)
+  THREAD_PALETTE.forEach((p, i) => {
+    const lab = oklab(p.hex)
+    const c = rgb(p.hex)
+    pal.set([lab.x, lab.y, lab.z, p.fam], i * 4)
+    pal.set([c[0], c[1], c[2], FAMILY_ORDER[p.fam]], (N + i) * 4)
+  })
+  const tPal = new THREE.DataTexture(pal, N, 2, THREE.RGBAFormat, THREE.FloatType)
+  tPal.minFilter = tPal.magFilter = THREE.NearestFilter
+  tPal.needsUpdate = true
+  const v4 = () => new THREE.Vector4()
   const uniforms: U = {
-    uPalRgb: { value: THREAD_PALETTE.map((p) => v3(p.hex)) },
-    uPalLab: { value: THREAD_PALETTE.map((p) => oklab(p.hex)) },
-    uPalFam: { value: THREAD_PALETTE.map((p) => p.fam) },
-    uFamOrder: { value: FAMILY_ORDER.slice() },
-    uMA: { value: vecs('A') },
-    uMB: { value: vecs('B') },
-    uMC: { value: vecs('C') },
-    uMD: { value: vecs('D') },
+    tPal: { value: tPal },
+    uNP: { value: N },
+    uN9: { value: 9 },
+    uTA: { value: v4() },
+    uTB: { value: v4() },
+    uTC: { value: v4() },
+    uTD: { value: v4() },
+    uFA: { value: v4() },
+    uFB: { value: v4() },
+    uFC: { value: v4() },
+    uFD: { value: v4() },
     uDensity: { value: dens },
     uFrom: { value: MODE_INDEX[mode] },
     uTo: { value: MODE_INDEX[mode] },
@@ -663,6 +697,20 @@ export function createEmbroideryEffect(init: { mode?: EmbroideryMode; density?: 
   }
   const st: State = { mode, density: dens, densityT: dens, dur: 2.4 }
   STATE.set(uniforms, st)
+  // copy the incoming / outgoing mode's parameter set into the T / F uniforms
+  const ORDER: EmbroideryMode[] = ['satin', 'suzhou', 'denim']
+  const copy = (to: string, idx: number) => {
+    const P = MODE_PARAMS[ORDER[idx]]
+    ;(uniforms[to + 'A'].value as THREE.Vector4).fromArray(P.A)
+    ;(uniforms[to + 'B'].value as THREE.Vector4).fromArray(P.B)
+    ;(uniforms[to + 'C'].value as THREE.Vector4).fromArray(P.C)
+    ;(uniforms[to + 'D'].value as THREE.Vector4).fromArray(P.D)
+  }
+  const syncParams = () => {
+    copy('uT', uniforms.uTo.value)
+    copy('uF', uniforms.uFrom.value)
+  }
+  syncParams()
   return {
     frag: FRAG,
     uniforms,
@@ -680,6 +728,7 @@ export function createEmbroideryEffect(init: { mode?: EmbroideryMode; density?: 
       st.density += (st.densityT - st.density) * (1 - Math.exp(-dt * 5))
       if (Math.abs(st.density - st.densityT) < 1e-3) st.density = st.densityT
       u.uDensity.value = st.density
+      syncParams()
     },
   }
 }

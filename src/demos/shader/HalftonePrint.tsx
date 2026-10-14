@@ -284,6 +284,24 @@ function Press({ rx, ry, cell, mis, wipe, modes }: Drive) {
     [R],
   )
 
+  // compile the print shader off the main thread (against the screen target, the variant actually drawn);
+  // until it is ready the plain render is shown instead of freezing the page for seconds on ANGLE/D3D
+  const ready = useRef(false)
+  useEffect(() => {
+    let alive = true
+    const target = gl.getRenderTarget()
+    gl.setRenderTarget(null)
+    gl.compileAsync(R.post, R.cam)
+      .catch(() => {})
+      .then(() => {
+        if (alive) ready.current = true
+      })
+    gl.setRenderTarget(target)
+    return () => {
+      alive = false
+    }
+  }, [R, gl])
+
   const rig = useRef<THREE.Group>(null)
   const spin = useRef<THREE.Group>(null)
   const st = useRef({ t: 0, auto: POSTER ? -0.4 : 0 })
@@ -305,6 +323,14 @@ function Press({ rx, ry, cell, mis, wipe, modes }: Drive) {
     }
     if (spin.current) {
       spin.current.rotation.set(rx.get() + Math.sin(s.t * 0.3) * 0.06, s.auto + ry.get(), 0)
+    }
+
+    if (!ready.current) {
+      gl.setRenderTarget(null)
+      gl.setClearColor(0xf6f2e8, 1)
+      gl.clear(true, true, false)
+      gl.render(scene, camera)
+      return
     }
 
     /* 1 · scene → off-screen target */

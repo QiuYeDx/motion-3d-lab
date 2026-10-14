@@ -216,6 +216,12 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
       post,
       cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1),
       mats: new Map<StylizeEffect, THREE.ShaderMaterial>(),
+      // shaders are compiled asynchronously; until an effect is ready the plain render stands in for it
+      fallback: createOriginalEffect(),
+      ready: new Set<StylizeEffect>(),
+      compiling: new Map<StylizeEffect, Promise<void>>(),
+      waited: new Set<StylizeEffect>(), // effects that were on screen while compiling → reveal with a wipe
+      reveal: new Map<StylizeEffect, number>(),
       buf: new THREE.Vector2(),
       bgA: new THREE.Color(),
       bgB: new THREE.Color(),
@@ -246,9 +252,42 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
     return m
   }
 
+  /** start (or join) the async compile of an effect's shader; resolves when it can be drawn without a stall */
+  const prepare = (fx: StylizeEffect) => {
+    if (R.ready.has(fx)) return Promise.resolve()
+    let job = R.compiling.get(fx)
+    if (!job) {
+      const m = matFor(fx)
+      const keep = R.quad.material
+      R.quad.material = m
+      // compile the variant that is actually used: the screen (sRGB output), not whatever target is bound now —
+      // otherwise the real program is linked synchronously at the first draw and blocks the page
+      const target = gl.getRenderTarget()
+      gl.setRenderTarget(null)
+      job = gl
+        .compileAsync(R.post, R.cam)
+        .catch(() => {
+          /* compile errors surface when the effect is drawn */
+        })
+        .then(() => {
+          R.compiling.delete(fx)
+          if (R.mats.get(fx) === m) R.ready.add(fx)
+        })
+      gl.setRenderTarget(target)
+      R.quad.material = keep
+      R.compiling.set(fx, job)
+    }
+    return job
+  }
+  const isReady = (fx: StylizeEffect) => {
+    if (R.ready.has(fx)) return true
+    prepare(fx)
+    return false
+  }
+
   // drop materials of effects that are no longer in use (preloaded ones count as in use)
   const live = useRef(new Set<StylizeEffect>())
-  live.current = new Set([effect, ...(prev ? [prev] : []), ...(preload ?? [])])
+  live.current = new Set([R.fallback, effect, ...(prev ? [prev] : []), ...(preload ?? [])])
 
   useEffect(() => {
     if (!preload?.length) return
@@ -256,16 +295,8 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
     ;(async () => {
       for (const fx of preload) {
         if (cancelled) return
-        if (R.mats.has(fx)) continue
-        const m = matFor(fx)
-        const keep = R.quad.material
-        R.quad.material = m
-        try {
-          await gl.compileAsync(R.post, R.cam)
-        } catch {
-          /* compile errors surface when the effect is drawn */
-        }
-        R.quad.material = keep
+        if (R.ready.has(fx)) continue
+        await prepare(fx)
         // let a few frames through between compiles
         await new Promise((r) => setTimeout(r, 120))
       }
@@ -357,8 +388,13 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
     s.uOrtho.value = (cam as THREE.OrthographicCamera).isOrthographicCamera ? 1 : 0
     s.uExposure.value = val(exposure, 1)
     const ctx = { dpr: gl.getPixelRatio(), width: R.buf.x, height: R.buf.y }
-    effect.update?.(dt, ctx)
-    if (prev && prev !== effect) prev.update?.(dt, ctx)
+    const okA = isReady(effect)
+    const okB = prev ? isReady(prev) : true
+    if (!okA) R.waited.add(effect)
+    if (prev && !okB) R.waited.add(prev)
+    // effects only start their clocks (intro animations etc.) once they are actually visible
+    if (okA) effect.update?.(dt, ctx)
+    if (prev && prev !== effect && okB) prev.update?.(dt, ctx)
     onFrame?.(dt)
 
     gl.setRenderTarget(null)
@@ -376,19 +412,35 @@ export function Stylize({ effect, prev, wipe, background = '#ffffff', exposure, 
       R.quad.material = m
       gl.render(R.post, R.cam)
     }
+    const A = okA ? effect : R.fallback
     if (prev && p < 1) {
-      drawOne(prev, p, 2, prevTarget)
-      if (p > 0) drawOne(effect, -1, p)
+      drawOne(okB ? prev : R.fallback, p, 2, prevTarget)
+      if (p > 0) drawOne(A, -1, p)
+    } else if (okA && R.waited.has(effect)) {
+      // it was on screen as the plain render while compiling: wipe the style in now
+      const r = Math.min(1, (R.reveal.get(effect) ?? 0) + dt / 0.9)
+      R.reveal.set(effect, r)
+      const e = r < 0.5 ? 4 * r * r * r : 1 - Math.pow(-2 * r + 2, 3) / 2
+      if (r >= 1) {
+        R.waited.delete(effect)
+        R.reveal.delete(effect)
+        drawOne(effect, -1, 2)
+      } else {
+        drawOne(R.fallback, e, 2)
+        if (e > 0) drawOne(effect, -1, e)
+      }
     } else {
-      drawOne(effect, -1, 2)
+      drawOne(A, -1, 2)
     }
 
     gl.autoClear = autoClear
     gl.setClearColor(prevClear, prevAlpha)
     R.mats.forEach((m, fx) => {
-      if (!live.current.has(fx)) {
+      if (!live.current.has(fx) && !R.compiling.has(fx)) {
         m.dispose()
         R.mats.delete(fx)
+        R.ready.delete(fx)
+        R.waited.delete(fx)
       }
     })
   }, 1)
