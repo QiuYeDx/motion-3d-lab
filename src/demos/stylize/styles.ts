@@ -30,6 +30,12 @@ import { createInkwashEffect, paintInkwash, inkwashMeta, inkwashModes, setInkwas
 import { createChalkEffect, drawChalk, chalkMeta, chalkModes, setChalkMode, type ChalkMode } from './effects/chalk'
 import { createHologramEffect, hologramMeta, hologramModes, setHologramMode, type HologramMode } from './effects/hologram'
 import { createInfraredEffect, infraredMeta, infraredModes, setInfraredMode, type InfraredMode } from './effects/infrared'
+import { createKnitEffect, knitIn, knitMeta, knitModes, setKnitMode, type KnitMode } from './effects/knit'
+import { createManualEffect, manualMeta, manualModes, setManualMode, type ManualMode } from './effects/manual'
+import { createNewspaperEffect, newspaperMeta, newspaperModes, setNewspaperMode, type NewspaperMode } from './effects/newspaper'
+import { createPolaroidEffect, developPolaroid, polaroidMeta, polaroidModes, setPolaroidMode, type PolaroidMode } from './effects/polaroid'
+import { createPuppetEffect, puppetMeta, puppetModes, setPuppetMode, type PuppetMode } from './effects/puppet'
+import { createCloisonneEffect, cloisonneMeta, cloisonneModes, setCloisonneMode, type CloisonneMode } from './effects/cloisonne'
 /** Every stylize effect the switcher can show, in display order. */
 export type StyleCat = 'print' | 'hand' | 'craft' | 'line' | 'digital' | 'imaging'
 
@@ -132,6 +138,16 @@ export const STYLES: StyleDef[] = [
     create: withBg(createPopEffect, popMeta.background),
     modes: popModes,
     setMode: (fx, id) => setPopMode(fx, id as PopMode),
+  },
+  {
+    id: 'newspaper',
+    cat: 'print',
+    short: '老报纸',
+    note: '粗网点 · 透印 · 折痕',
+    meta: newspaperMeta,
+    create: withBg(createNewspaperEffect, newspaperMeta.background),
+    modes: newspaperModes,
+    setMode: (fx, id) => setNewspaperMode(fx, id as NewspaperMode),
   },
   {
     id: 'sketch',
@@ -239,6 +255,26 @@ export const STYLES: StyleDef[] = [
     setMode: (fx, id) => setPapercutMode(fx, id as PapercutMode),
   },
   {
+    id: 'puppet',
+    cat: 'craft',
+    short: '皮影',
+    note: '镂刻透光 · 灯影',
+    meta: puppetMeta,
+    create: withBg(createPuppetEffect, puppetMeta.background),
+    modes: puppetModes,
+    setMode: (fx, id) => setPuppetMode(fx, id as PuppetMode),
+  },
+  {
+    id: 'cloisonne',
+    cat: 'craft',
+    short: '景泰蓝',
+    note: '金丝 · 彩釉',
+    meta: cloisonneMeta,
+    create: withBg(createCloisonneEffect, cloisonneMeta.background),
+    modes: cloisonneModes,
+    setMode: (fx, id) => setCloisonneMode(fx, id as CloisonneMode),
+  },
+  {
     id: 'roman',
     cat: 'craft',
     short: '镶嵌',
@@ -247,6 +283,17 @@ export const STYLES: StyleDef[] = [
     create: withBg(createRomanEffect, romanMeta.background),
     modes: romanModes,
     setMode: (fx, id) => setRomanMode(fx, id as RomanMode),
+  },
+  {
+    id: 'knit',
+    cat: 'craft',
+    short: '毛线',
+    note: 'V 形针目 · 提花',
+    meta: knitMeta,
+    create: withBg(createKnitEffect, knitMeta.background),
+    modes: knitModes,
+    setMode: (fx, id) => setKnitMode(fx, id as KnitMode),
+    onEnter: (fx) => knitIn(fx),
   },
   {
     id: 'toon',
@@ -278,6 +325,16 @@ export const STYLES: StyleDef[] = [
     create: withBg(createTattooEffect, tattooMeta.background),
     modes: tattooModes,
     setMode: (fx, id) => setTattooMode(fx, id as TattooMode),
+  },
+  {
+    id: 'manual',
+    cat: 'line',
+    short: '说明书',
+    note: '等宽线 · 两阶平涂',
+    meta: manualMeta,
+    create: withBg(createManualEffect, manualMeta.background),
+    modes: manualModes,
+    setMode: (fx, id) => setManualMode(fx, id as ManualMode),
   },
   {
     id: 'ascii',
@@ -348,6 +405,17 @@ export const STYLES: StyleDef[] = [
     create: withBg(createInfraredEffect, infraredMeta.background),
     modes: infraredModes,
     setMode: (fx, id) => setInfraredMode(fx, id as InfraredMode),
+  },
+  {
+    id: 'polaroid',
+    cat: 'imaging',
+    short: '拍立得',
+    note: '一次成像 · 漏光 · 显影',
+    meta: polaroidMeta,
+    create: withBg(createPolaroidEffect, polaroidMeta.background),
+    modes: polaroidModes,
+    setMode: (fx, id) => setPolaroidMode(fx, id as PolaroidMode),
+    onEnter: (fx) => developPolaroid(fx),
   },
   {
     id: 'xray',

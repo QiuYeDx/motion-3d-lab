@@ -129,3 +129,7 @@ no dynamically indexed uniform arrays (put palettes in a small DataTexture + tex
 Measure first-load stall like this (must be < 300 ms): job URL = the GALLERY (`http://localhost:5196/?<uniq>`) with
 script `(async()=>{await new Promise(r=>setTimeout(r,1500));const g=[];let l=performance.now();location.hash='/<demo-id>';const t0=l;while(performance.now()-t0<9000){await new Promise(r=>requestAnimationFrame(r));const n=performance.now();g.push(n-l);l=n}return Math.max(...g)})()`
 and report the number.
+- If you use `usePrecompiled` (src/demos/stylize/precompile.ts) with shadows, use `<Canvas shadows="percentage">`
+  (three r186 swaps the default PCFSoft for PCF on the first shadow render, invalidating precompiled programs).
+- The style switcher's still life is one big lit scene with a cream floor disc; make sure your effect's default mode
+  reads well there too (report how it looks).

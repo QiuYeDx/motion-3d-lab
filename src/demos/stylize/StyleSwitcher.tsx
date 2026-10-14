@@ -6,6 +6,7 @@ import { BigLabel } from '../../components/BigLabel'
 import { Seg } from '../../components/Seg'
 import { POSTER } from '../../lib/iso'
 import { createOriginalEffect, Stylize, type StylizeEffect } from '../../lib/stylize'
+import { usePrecompiled } from './precompile'
 import { STYLE_CATS, STYLES, type StyleDef } from './styles'
 
 /*
@@ -22,6 +23,8 @@ const ROTATE_EVERY = 6.5
 function StillLife({ ry, rx }: { ry: MotionValue<number>; rx: MotionValue<number> }) {
   const spin = useRef<THREE.Group>(null)
   const ball = useRef<THREE.Mesh>(null)
+  // compile the still life's lit materials off the main thread before it first appears
+  const ready = usePrecompiled(spin)
   const t = useRef(POSTER ? 2.2 : 0)
   useFrame((_, dt) => {
     t.current += Math.min(dt, 1 / 30)
@@ -29,7 +32,7 @@ function StillLife({ ry, rx }: { ry: MotionValue<number>; rx: MotionValue<number
     if (ball.current) ball.current.position.y = 0.55 + Math.abs(Math.sin(t.current * 1.6)) * 0.55
   })
   return (
-    <group ref={spin} position={[0, -0.35, 0]}>
+    <group ref={spin} position={[0, -0.35, 0]} visible={ready}>
       <mesh rotation={[0.35, 0.2, 0]} position={[0, 0.95, 0]} castShadow receiveShadow>
         <torusKnotGeometry args={[0.62, 0.22, 220, 36]} />
         <meshStandardMaterial color="#e2483d" roughness={0.35} />
@@ -67,15 +70,32 @@ function StillLife({ ry, rx }: { ry: MotionValue<number>; rx: MotionValue<number
 type Phase = { cur: number; from: number | null }
 
 export default function StyleSwitcher() {
-  const fxs = useMemo(() => STYLES.map((s) => s.create()), [])
+  // effects are created lazily: several build glyph atlases, noise and palette textures on the CPU, so creating
+  // all of them on mount would stall the first frames
+  const fxCache = useMemo(() => new Array<StylizeEffect | undefined>(STYLES.length), [])
+  const fxAt = (i: number) => (fxCache[i] ??= STYLES[i].create())
   const original = useMemo(createOriginalEffect, [])
-  // compile every style's shader in the background once the first frames are on screen
-  const [preload, setPreload] = useState<StylizeEffect[] | undefined>()
-  useEffect(() => {
-    const id = setTimeout(() => setPreload(fxs), 1500)
-    return () => clearTimeout(id)
-  }, [fxs])
   const [phase, setPhase] = useState<Phase>({ cur: 0, from: null })
+  // compile shaders on demand, in the background: the next two styles of the auto tour plus whatever the pointer
+  // hovers in the rail. Anything compiled once stays compiled (the set only grows), so with dozens of styles the
+  // page never pays for all of them up front.
+  const [wanted, setWanted] = useState<Set<number>>(() => new Set())
+  const want = (...idx: number[]) =>
+    setWanted((w) => (idx.every((i) => w.has(i)) ? w : new Set([...w, ...idx])))
+  const [warm, setWarm] = useState(false)
+  useEffect(() => {
+    const id = setTimeout(() => setWarm(true), 1200)
+    return () => clearTimeout(id)
+  }, [])
+  useEffect(() => {
+    if (warm) want((phase.cur + 1) % STYLES.length, (phase.cur + 2) % STYLES.length)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warm, phase.cur])
+  const preload = useMemo(
+    () => (wanted.size ? [...wanted].sort((a, b) => a - b).map((i) => fxAt(i)) : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wanted],
+  )
   const [mode, setMode] = useState<string[]>(() => STYLES.map((s) => s.modes?.[0]?.id ?? ''))
   const wipe = useMotionValue(1)
   const split = useMotionValue(POSTER ? 0.47 : 0)
@@ -112,7 +132,7 @@ export default function StyleSwitcher() {
     const keep = userSplit.current
     if (split.get() > 0.001) await animate(split, 0, { duration: 0.25, ease: [0.4, 0, 0.2, 1] })
     wipe.set(0)
-    STYLES[next].onEnter?.(fxs[next])
+    STYLES[next].onEnter?.(fxAt(next))
     setPhase({ cur: next, from: phase.cur })
     await animate(wipe, 1, { duration: 1.05, ease: [0.65, 0, 0.35, 1] })
     setPhase({ cur: next, from: null })
@@ -160,7 +180,7 @@ export default function StyleSwitcher() {
   const pickMode = (i: number, id: string) => {
     lastInput.current = performance.now()
     const s = STYLES[i]
-    s.setMode?.(fxs[i], id)
+    s.setMode?.(fxAt(i), id)
     setMode((m) => m.map((v, k) => (k === i ? id : v)))
   }
 
@@ -182,8 +202,8 @@ export default function StyleSwitcher() {
   const drag = useRef<{ x: number; y: number; ry: number; rx: number; vx: number; t: number } | null>(null)
 
   const transitioning = phase.from !== null
-  const effect: StylizeEffect = transitioning ? fxs[phase.cur] : original
-  const prev: StylizeEffect = transitioning ? fxs[phase.from!] : fxs[phase.cur]
+  const effect: StylizeEffect = transitioning ? fxAt(phase.cur) : original
+  const prev: StylizeEffect = transitioning ? fxAt(phase.from!) : fxAt(phase.cur)
   const background = (transitioning ? STYLES[phase.cur] : style).meta.background
   const wipeMv = transitioning ? wipe : split
 
@@ -217,7 +237,7 @@ export default function StyleSwitcher() {
         animate(rx, 0.08, { type: 'spring', stiffness: 60, damping: 14 })
       }}
     >
-      <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 2.3, 6.2], fov: 36 }} gl={{ antialias: false }}>
+      <Canvas shadows="percentage" dpr={[1, 2]} camera={{ position: [0, 2.3, 6.2], fov: 36 }} gl={{ antialias: false }}>
         <CameraFrame />
         <Stylize effect={effect} prev={prev} wipe={wipeMv} background={background} preload={preload} />
         <hemisphereLight args={['#fff6ea', '#5a5048', 0.55]} />
@@ -295,6 +315,8 @@ export default function StyleSwitcher() {
               key={st.id}
               className="ss-item"
               aria-pressed={i === phase.cur}
+              onPointerEnter={() => want(i)}
+              onFocus={() => want(i)}
               onClick={() => {
                 lastInput.current = performance.now()
                 go(i)
