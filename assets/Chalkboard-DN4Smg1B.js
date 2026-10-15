@@ -1,0 +1,91 @@
+import{a as e,n as t,t as n}from"./jsx-runtime-D3jfb0Ew.js";import{t as r}from"./animate-CX_WDEyT.js";import{t as i}from"./use-motion-value-CIZAIwyH.js";import{n as a,r as o}from"./index-uImfd-0P.js";import{Ot as s,_n as c,h as l,u,yt as d,zt as f}from"./events-9ce18a08.esm-BkDjjFw8.js";import{t as p}from"./react-three-fiber.esm-BQtD7wyt.js";import{n as m}from"./iso-C377rVhz.js";import{t as h}from"./Seg-BfWvO_Xs.js";import{t as g}from"./precompile-DQa1gWiJ.js";import{n as _,t as v}from"./stylize-crQqMM2W.js";import{a as y,c as b,i as x,l as S,n as C,o as w,r as T,s as E,t as D,u as O}from"./chalk-BwDD8lo5.js";import{n as k,t as A}from"./OriginalSplit-CgB5B9FY.js";var j=e(t(),1),M=n(),N=typeof window<`u`&&Math.min(window.innerWidth,window.innerHeight)<760,ee=12e3,P=1250,te={board:{tool:`白粉笔`,note:`亮处上粉 · 暗处留黑板 · 只在最鲜艳处换色`},color:{tool:`彩色粉笔`,note:`黄 粉 蓝 绿 橙 · 侧锋铺色 · 高光重按`},lecture:{tool:`板书`,note:`线条干净 · 公式、箭头和标注写在旁边`}},F=(e,t=.6)=>new s({color:e,roughness:t});function I({from:e,to:t,r:n=.018,m:r}){let{pos:i,quat:a,len:o}=(0,j.useMemo)(()=>{let n=new c(...e),r=new c(...t),i=r.clone().sub(n);return{pos:n.clone().add(r).multiplyScalar(.5),quat:new f().setFromUnitVectors(new c(0,1,0),i.clone().normalize()),len:i.length()}},[e,t]);return(0,M.jsx)(`mesh`,{position:i,quaternion:a,material:r,children:(0,M.jsx)(`cylinderGeometry`,{args:[n,n,o,6]})})}function ne({ry:e,anchors:t,onReady:n}){let r=(0,j.useRef)(null),i=g(r,n),a=l(e=>e.size),o=l(e=>e.viewport),s=(0,j.useRef)(null),c=(0,j.useRef)(null),d=(0,j.useRef)(null),f=(0,j.useRef)(m?2.5:0),p=(0,j.useMemo)(()=>({cube:F(`#6fb0e8`,.55),cone:F(`#f2c94c`,.55),sphere:F(`#ea6d93`,.35),cyl:F(`#7ccf86`,.5),dim:F(`#f4f1e8`,.8),ground:F(`#d9d5cc`,.9)}),[]);(0,j.useEffect)(()=>()=>Object.values(p).forEach(e=>e.dispose()),[p]),u((t,n)=>{f.current+=Math.min(n,1/30);let r=a.width<760,i=o.width,l=o.height,u=m?Math.min(1,i/8.6,l/4.6):r?Math.min(.62,i/9.6):Math.min(.95,l/5.4,i/12.5);s.current&&(s.current.scale.setScalar(u),s.current.position.set(m||r?0:i*.17,m?-.35*u:r?l*.12:-.3*u,0)),c.current&&(c.current.rotation.y=(m?.18:Math.sin(f.current*.16)*.32)+e.get()),d.current&&(d.current.rotation.y=.6+(m?0:f.current*.12))});let h=e=>n=>{t.current&&(t.current[e]=n)};return(0,M.jsxs)(M.Fragment,{children:[(0,M.jsx)(`hemisphereLight`,{args:[`#ffffff`,`#2a3330`,.3]}),(0,M.jsx)(`directionalLight`,{position:[-4,6,5],intensity:3,color:`#fffaf0`}),(0,M.jsx)(`directionalLight`,{position:[5,1.5,3],intensity:.35,color:`#cfe0ff`}),(0,M.jsx)(`group`,{ref:s,children:(0,M.jsx)(`group`,{ref:r,visible:i,children:(0,M.jsxs)(`group`,{ref:c,rotation:[.12,0,0],children:[(0,M.jsx)(`mesh`,{position:[0,-.02,0],material:p.ground,children:(0,M.jsx)(`boxGeometry`,{args:[8.6,.04,.04]})}),(0,M.jsx)(`group`,{position:[-2.85,0,.2],children:(0,M.jsxs)(`group`,{ref:d,children:[(0,M.jsx)(`mesh`,{position:[0,.6,0],material:p.cube,children:(0,M.jsx)(`boxGeometry`,{args:[1.2,1.2,1.2]})}),(0,M.jsx)(`object3D`,{ref:h(`cube`),position:[.6,1.2,.6]}),(0,M.jsx)(I,{from:[-.6,-.12,.78],to:[.6,-.12,.78],m:p.dim}),(0,M.jsx)(I,{from:[-.6,-.22,.78],to:[-.6,-.02,.78],m:p.dim}),(0,M.jsx)(I,{from:[.6,-.22,.78],to:[.6,-.02,.78],m:p.dim}),(0,M.jsx)(`object3D`,{ref:h(`a`),position:[0,-.12,.78]})]})}),(0,M.jsxs)(`group`,{position:[-.95,0,-.25],children:[(0,M.jsx)(`mesh`,{position:[0,.85,0],material:p.cone,children:(0,M.jsx)(`coneGeometry`,{args:[.72,1.7,64]})}),(0,M.jsx)(`object3D`,{ref:h(`cone`),position:[0,1.7,0]})]}),(0,M.jsxs)(`group`,{position:[.9,0,.25],children:[(0,M.jsx)(`mesh`,{position:[0,.75,0],material:p.sphere,children:(0,M.jsx)(`sphereGeometry`,{args:[.75,64,40]})}),(0,M.jsx)(`object3D`,{ref:h(`sphere`),position:[.53,1.28,0]})]}),(0,M.jsxs)(`group`,{position:[2.75,0,-.1],children:[(0,M.jsx)(`mesh`,{position:[0,.7,0],material:p.cyl,children:(0,M.jsx)(`cylinderGeometry`,{args:[.55,.55,1.4,64]})}),(0,M.jsx)(I,{from:[.82,0,0],to:[.82,1.4,0],m:p.dim}),(0,M.jsx)(I,{from:[.7,0,0],to:[.94,0,0],m:p.dim}),(0,M.jsx)(I,{from:[.7,1.4,0],to:[.94,1.4,0],m:p.dim}),(0,M.jsx)(`object3D`,{ref:h(`cyl`),position:[.3,1.4,.4]}),(0,M.jsx)(`object3D`,{ref:h(`h`),position:[.82,.7,0]})]})]})})})]})}var L=[{key:`cube`,name:`正方体`,formula:`V = a³`,dx:-150,dy:-118,mdx:34,mdy:-150},{key:`cone`,name:`圆锥`,formula:`V = ⅓πr²h`,dx:-40,dy:-132,mdx:0,mdy:-84},{key:`sphere`,name:`球`,formula:`V = ⁴⁄₃πr³`,dx:-30,dy:-150,mdx:-10,mdy:-140},{key:`cyl`,name:`圆柱`,formula:`V = πr²h`,dx:40,dy:-150,mdx:-34,mdy:-84}];function re({anchors:e,labels:t,paths:n,heads:r,dims:i}){let a=l(e=>e.camera),o=l(e=>e.size),s=(0,j.useMemo)(()=>new c,[]);return u(()=>{let c=e.current;if(!c)return;let l=o.width<760,u=e=>(e.getWorldPosition(s),s.project(a),[(s.x*.5+.5)*o.width,(-s.y*.5+.5)*o.height]);L.forEach((e,i)=>{let a=c[e.key],o=t.current?.[i],s=n.current?.[i],d=r.current?.[i];if(!a||!o||!s||!d)return;let[f,p]=u(a),m=l?e.mdx??e.dx:e.dx,h=l?e.mdy??e.dy:e.dy,g=f+m,_=p+h;o.style.transform=`translate(${g.toFixed(1)}px, ${_.toFixed(1)}px) translate(-50%, -50%)`;let v=g+(m<0?18:-18)*(Math.abs(m)>40),y=_+20,b=f+(v-f)*.1,x=p+(y-p)*.1,S=(v+b)/2+(x-y)*.22,C=(y+x)/2-(b-v)*.22;s.setAttribute(`d`,`M${v.toFixed(1)} ${y.toFixed(1)} Q${S.toFixed(1)} ${C.toFixed(1)} ${b.toFixed(1)} ${x.toFixed(1)}`);let w=b-S,T=x-C,E=Math.hypot(w,T)||1,D=w/E,O=T/E,k=b-D*11-O*11*.55,A=x-O*11+D*11*.55,j=b-D*11+O*11*.55,M=x-O*11-D*11*.55;d.setAttribute(`d`,`M${k.toFixed(1)} ${A.toFixed(1)} L${b.toFixed(1)} ${x.toFixed(1)} L${j.toFixed(1)} ${M.toFixed(1)}`)}),[`a`,`h`].forEach((e,t)=>{let n=c[e],r=i.current?.[t];if(!n||!r)return;let[a,o]=u(n);r.style.transform=`translate(${(a+(e===`h`?16:0)).toFixed(1)}px, ${(o+(e===`a`?16:0)).toFixed(1)}px) translate(-50%, -50%)`})}),null}function ie({fx:e,eraser:t,drawBtn:n}){let r=l(e=>e.size),i=(0,j.useRef)(0);return u((a,o)=>{i.current+=o;let s=x(e),c=t.current;if(c){if(s.erasing>=0){let e=((-.06+s.erasing*(2-s.erasing)*1.16)*.995-.02)*r.width,t=r.height*(.5+Math.sin(i.current*15)*.2+Math.sin(i.current*4.3)*.08);c.style.opacity=`1`,c.style.transform=`translate(${e.toFixed(1)}px, ${t.toFixed(1)}px) translate(-50%, -50%) rotate(${(Math.sin(i.current*15)*8).toFixed(1)}deg)`}else c.style.opacity=`0`}let l=n.current;l&&(l.style.setProperty(`--p`,s.draw.toFixed(3)),l.dataset.drawing=s.draw<1||s.erasing>=0?`1`:`0`)}),null}var ae=()=>{let e=new Date;return`${e.getMonth()+1}月${e.getDate()}日 星期${`日一二三四五六`[e.getDay()]}`};function R(){let[e,t]=(0,j.useState)(m?`lecture`:`board`),n=(0,j.useMemo)(()=>{let e=y();return N&&S(e,.8),O(e),e},[]),s=(0,j.useMemo)(()=>[n],[n]),c=(0,j.useMemo)(_,[]),l=k(N?.5:.6),u=(0,j.useRef)(m?1/0:performance.now()),f=(0,j.useRef)(null),g=(0,j.useRef)(null),[F,I]=(0,j.useState)(0),[R,z]=(0,j.useState)(!1),B=(0,j.useRef)([]);(0,j.useEffect)(()=>()=>B.current.forEach(clearTimeout),[]);let V=(0,j.useRef)({cube:null,cone:null,sphere:null,cyl:null,a:null,h:null}),H=(0,j.useRef)([]),U=(0,j.useRef)([]),W=(0,j.useRef)([]),G=(0,j.useRef)([]);(0,j.useEffect)(()=>b(n,e),[n,e]);let se=()=>{m||(w(n),I(e=>e+1))},ce=()=>{w(n),I(e=>e+1)},le=e=>{R||(E(n),z(!0),B.current.push(window.setTimeout(()=>{z(!1),e?.(),I(e=>e+1)},P)))},K=(0,j.useRef)(!1);K.current=l.open;let q=(0,j.useRef)(!1);q.current=R,(0,j.useEffect)(()=>{if(m)return;let e=setInterval(()=>{performance.now()-u.current<12e3||K.current||q.current||x(n).draw<1||(E(n),z(!0),B.current.push(window.setTimeout(()=>{z(!1),t(e=>T[(T.findIndex(t=>t.id===e)+1)%T.length].id),I(e=>e+1)},P)))},ee);return()=>clearInterval(e)},[n]);let J=()=>u.current=performance.now(),Y=i(0),X=(0,j.useRef)(null),Z=(0,j.useRef)(null),ue=e=>{J(),!e.target.closest(`.dock, .osplit-knob`)&&(Z.current?.stop(),X.current={x:e.clientX,id:e.pointerId},e.currentTarget.setPointerCapture(e.pointerId))},de=e=>{let t=X.current;t&&t.id===e.pointerId&&(Y.set(d.clamp(Y.get()+(e.clientX-t.x)*.005,-1.1,1.1)),t.x=e.clientX)},Q=e=>{X.current&&X.current.id===e.pointerId&&(X.current=null,J(),Z.current=r(Y,Y.get(),{type:`inertia`,velocity:Y.getVelocity(),power:.4,timeConstant:600,min:-1.1,max:1.1,bounceStiffness:140,bounceDamping:18}))},$=te[e],fe=T.find(t=>t.id===e).label,pe=e===`lecture`&&!R&&!l.open;return(0,M.jsxs)(`div`,{className:`stage theme-dark ck ck-${e}${l.open?` ck-split`:``}`,style:{background:D[e]},onPointerDown:ue,onPointerMove:de,onPointerUp:Q,onPointerCancel:Q,children:[(0,M.jsx)(`style`,{children:oe}),(0,M.jsx)(`svg`,{width:`0`,height:`0`,style:{position:`absolute`},"aria-hidden":!0,children:(0,M.jsxs)(`filter`,{id:`ck-chalk`,x:`-5%`,y:`-20%`,width:`110%`,height:`140%`,children:[(0,M.jsx)(`feTurbulence`,{type:`fractalNoise`,baseFrequency:`1.1`,numOctaves:`2`,seed:`7`,result:`n`}),(0,M.jsx)(`feDisplacementMap`,{in:`SourceGraphic`,in2:`n`,scale:`2.2`,xChannelSelector:`R`,yChannelSelector:`G`,result:`d`}),(0,M.jsx)(`feColorMatrix`,{in:`n`,values:`0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 2.05`,result:`m`}),(0,M.jsx)(`feComposite`,{in:`d`,in2:`m`,operator:`in`})]})}),(0,M.jsxs)(p,{dpr:[1,2],gl:{antialias:!1,alpha:!1},camera:{position:[0,2,11],fov:30},onCreated:({camera:e})=>e.lookAt(0,.7,0),children:[(0,M.jsx)(v,{effect:l.on?c:n,prev:l.on?n:null,wipe:l.wipe,background:C.background,preload:s}),(0,M.jsx)(ne,{ry:Y,anchors:V,onReady:se}),(0,M.jsx)(re,{anchors:V,labels:H,paths:U,heads:W,dims:G}),(0,M.jsx)(ie,{fx:n,eraser:g,drawBtn:f})]}),(0,M.jsx)(`div`,{className:`ck-notes`,"aria-hidden":!0,children:(0,M.jsx)(o,{children:pe&&(0,M.jsxs)(a.div,{className:`ck-notes-in`,initial:{opacity:1},exit:{opacity:0,transition:{duration:.25}},children:[(0,M.jsx)(`svg`,{className:`ck-arrows`,children:L.map((e,t)=>(0,M.jsxs)(`g`,{children:[(0,M.jsx)(a.path,{ref:e=>{U.current[t]=e},initial:{pathLength:0},animate:{pathLength:1},transition:{delay:(m?0:1.9)+t*.45+.35,duration:.45,ease:[.4,0,.2,1]}}),(0,M.jsx)(a.path,{ref:e=>{W.current[t]=e},initial:{pathLength:0},animate:{pathLength:1},transition:{delay:(m?0:1.9)+t*.45+.78,duration:.18}})]},e.key))}),L.map((e,t)=>(0,M.jsx)(`div`,{className:`ck-note`,ref:e=>{H.current[t]=e},children:(0,M.jsxs)(a.span,{initial:{clipPath:`inset(0 100% 0 0)`},animate:{clipPath:`inset(0 0% 0 0)`},transition:{delay:(m?0:1.9)+t*.45,duration:.5,ease:`linear`},children:[(0,M.jsx)(`b`,{children:e.name}),` `,e.formula]})},e.key)),[`a`,`h`].map((e,t)=>(0,M.jsx)(a.div,{className:`ck-dim`,ref:e=>{G.current[t]=e},initial:{opacity:0},animate:{opacity:1},transition:{delay:(m?0:1.6)+t*.2,duration:.3},children:e},e)),(0,M.jsxs)(a.div,{className:`ck-date`,initial:{clipPath:`inset(0 100% 0 0)`},animate:{clipPath:`inset(0 0% 0 0)`},transition:{delay:m?0:.5,duration:.7,ease:`linear`},children:[ae(),(0,M.jsx)(`span`,{children:`值日：小林`})]})]},F)})}),(0,M.jsx)(`div`,{className:`ck-eraser`,ref:g,"aria-hidden":!0,children:(0,M.jsx)(`i`,{})}),(0,M.jsx)(`div`,{className:`ck-frame`,"aria-hidden":!0}),(0,M.jsxs)(`div`,{className:`ck-tray`,"aria-hidden":!0,children:[(0,M.jsx)(`i`,{className:`s1`}),(0,M.jsx)(`i`,{className:`s2`}),(0,M.jsx)(`i`,{className:`s3`}),(0,M.jsx)(`i`,{className:`s4`}),(0,M.jsx)(`b`,{className:`ck-tray-eraser`})]}),(0,M.jsxs)(`div`,{className:`overlay`,children:[(0,M.jsxs)(`div`,{className:`hero-copy ck-copy`,children:[(0,M.jsx)(`div`,{className:`scrim`}),(0,M.jsxs)(a.div,{initial:{opacity:0,y:14},animate:{opacity:1,y:0},transition:{duration:.8,delay:.15,ease:[.23,1,.32,1]},children:[(0,M.jsxs)(`p`,{className:`kicker`,children:[(0,M.jsx)(`i`,{}),`Chalkboard · 第三节 数学课`]}),(0,M.jsxs)(`h1`,{children:[`粉笔一画，`,(0,M.jsx)(`br`,{}),`满手是灰`]}),(0,M.jsx)(`p`,{className:`ck-sub`,children:`亮的地方上粉，暗的地方留出黑板：轮廓被板面的颗粒打断、偶尔描两遍，阴影用粉笔侧锋一排排铺上去，高光处重重按满。黑板上还留着上节课没擦干净的印子。`}),(0,M.jsx)(`div`,{className:`ck-spec`,children:(0,M.jsx)(o,{mode:`popLayout`,initial:!1,children:(0,M.jsxs)(a.span,{initial:{opacity:0,y:6,filter:`blur(4px)`},animate:{opacity:1,y:0,filter:`blur(0px)`},exit:{opacity:0,y:-6,filter:`blur(4px)`},transition:{duration:.35,ease:[.23,1,.32,1]},children:[(0,M.jsx)(`b`,{children:$.tool}),$.note]},e)})})]})]}),(0,M.jsx)(A,{split:l,label:fe}),(0,M.jsxs)(`div`,{className:`dock`,onPointerDown:J,children:[(0,M.jsx)(h,{items:T.map(e=>({value:e.id,label:N&&e.id===`lecture`?`讲解`:N&&e.id===`color`?`彩色`:e.label})),value:e,onChange:e=>{J(),t(e)}}),(0,M.jsx)(`span`,{className:`dock-sep`}),(0,M.jsxs)(`button`,{ref:f,className:`seg ck-btn ck-draw`,onClick:ce,"aria-label":`重写`,children:[(0,M.jsx)(`span`,{children:`重写`}),(0,M.jsx)(`i`,{className:`ck-bar`})]}),(0,M.jsx)(`button`,{className:`seg ck-btn`,onClick:()=>le(),"aria-label":`擦除`,children:(0,M.jsx)(`span`,{children:`擦除`})}),(0,M.jsxs)(`button`,{className:`seg ck-btn`,"aria-pressed":l.open,onClick:l.toggle,children:[l.open&&(0,M.jsx)(a.span,{layoutId:`ck-split`,className:`seg-bg`,transition:{type:`spring`,stiffness:520,damping:40}}),(0,M.jsx)(`span`,{children:`原图`})]})]}),(0,M.jsx)(`p`,{className:`hint`,children:`拖动转动几何体 · 闲置时擦掉重画`})]})]})}var z=`"STKaiti", "KaiTi", "Kaiti SC", "BiauKai", "楷体", "Xingkai SC", cursive`,oe=`
+.ck { cursor: grab; touch-action: none; transition: background .8s; }
+.ck:active { cursor: grabbing; }
+.ck canvas { display: block; }
+.ck-copy { pointer-events: none !important; --soft-bg: #1d2622; }
+.ck-lecture .ck-copy { --soft-bg: #22392c; }
+.ck-copy .scrim { opacity: .7; }
+.ck-split .ck-copy .scrim { opacity: .95; }
+.ck-copy .kicker { color: rgba(243, 240, 230, .72); }
+.ck-copy .kicker i { background: #f5e07a; }
+.ck-copy h1 { font-size: clamp(38px, 4.4vw, 60px); color: #f3f0e6; font-family: ${z}; font-weight: 400; letter-spacing: .03em; }
+.ck-sub { max-width: 400px; color: rgba(243, 240, 230, .74) !important; }
+.ck-spec { margin-top: 22px; min-height: 22px; font: 500 12px/22px var(--mono); color: rgba(243, 240, 230, .72); }
+.ck-spec span { display: inline-flex; align-items: center; gap: 10px; }
+.ck-spec b { font-weight: 600; color: #f3f0e6; padding: 0 8px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(243, 240, 230, .32); font-family: var(--sans); }
+.ck .dock { bottom: 40px; }
+.ck .hint { bottom: 44px; right: 36px; color: rgba(243, 240, 230, .6); }
+.ck-split .hint { opacity: 0; }
+.ck-btn span { display: inline-flex; align-items: center; gap: 6px; }
+.ck-draw { overflow: hidden; }
+.ck-bar {
+  position: absolute; left: 12px; right: 12px; bottom: 5px; height: 2px; border-radius: 2px;
+  background: #f5e07a; transform-origin: left; transform: scaleX(var(--p, 1)); opacity: 0; transition: opacity .3s;
+}
+.ck-draw[data-drawing='1'] .ck-bar { opacity: .85; }
+
+.ck-notes, .ck-notes-in { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.ck-notes-in { filter: url(#ck-chalk); }
+.ck-arrows { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+.ck-arrows path { fill: none; stroke: #f3f0e6; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }
+.ck-note {
+  position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform;
+  font: 400 24px/1.2 ${z}; color: #f3f0e6; opacity: .94; text-shadow: 0 0 1px rgba(243,240,230,.6);
+}
+.ck-note b { font-weight: 400; color: #f5e07a; margin-right: 4px; }
+.ck-note span { display: inline-block; padding: 2px 4px; }
+.ck-dim { position: absolute; left: 0; top: 0; font: italic 400 22px/1 "Times New Roman", serif; color: #9ccff0; will-change: transform; }
+.ck-date {
+  position: absolute; top: 88px; right: clamp(28px, 4vw, 64px); text-align: right;
+  font: 400 22px/1.5 ${z}; color: #f3f0e6; opacity: .88;
+}
+.ck-date span { display: block; font-size: 17px; color: #f3a3bf; }
+
+.ck-eraser {
+  position: absolute; left: 0; top: 0; width: 76px; height: 150px; z-index: 2; pointer-events: none; opacity: 0;
+  border-radius: 10px; background: linear-gradient(90deg, #a8743f, #c48a4d 40%, #8f5e31);
+  box-shadow: 0 14px 30px -8px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.ck-eraser i { position: absolute; right: -10px; top: 6px; bottom: 6px; width: 14px; border-radius: 4px; background: repeating-linear-gradient(0deg, #e8e5dc 0 2px, #cfcac0 2px 4px); }
+
+.ck-frame {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; padding: 12px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 11px, rgba(255,255,255,.05) 11px 13px, transparent 13px 29px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.08) 0 3px, transparent 3px 11px, rgba(255,255,255,.05) 11px 13px, transparent 13px 29px),
+    linear-gradient(135deg, #9a6a3d, #7c522c 50%, #a3703f);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.ck::after {
+  content: ''; position: absolute; inset: 12px; pointer-events: none; z-index: 2;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.4), inset 0 6px 18px rgba(0,0,0,.45), inset 0 -2px 10px rgba(0,0,0,.3);
+}
+.ck-tray {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; height: 16px; z-index: 3; pointer-events: none;
+  background: linear-gradient(180deg, #b07a45, #7a4f2a); box-shadow: 0 -3px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.ck-tray i { position: absolute; bottom: 9px; height: 7px; border-radius: 3px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.12); }
+.ck-tray .s1 { left: 18%; width: 46px; background: #f3f0e6; }
+.ck-tray .s2 { left: calc(18% + 54px); width: 30px; background: #f5e07a; transform: rotate(-4deg); }
+.ck-tray .s3 { right: 22%; width: 38px; background: #f3a3bf; }
+.ck-tray .s4 { right: calc(22% + 46px); width: 22px; background: #9ccff0; }
+.ck-tray-eraser {
+  position: absolute; right: 9%; bottom: 9px; width: 70px; height: 13px; border-radius: 4px;
+  background: linear-gradient(180deg, #c48a4d 0 55%, #ddd8ce 55%);
+}
+@media (max-width: 760px) {
+  .ck-sub { display: none; }
+  .ck-copy h1 { font-size: 34px; }
+  .ck-spec { margin-top: 10px; font-size: 11px; }
+  .ck .dock .seg { padding: 0 9px; }
+  .ck .dock .dock-sep { margin: 0 1px; }
+  .ck-split .ck-copy { opacity: 0; }
+  .ck-note { font-size: 15px; }
+  .ck-dim { font-size: 17px; }
+  .ck-date { top: 76px; font-size: 16px; right: 22px; }
+  .ck-date span { font-size: 13px; }
+  .ck-eraser { width: 56px; height: 110px; }
+  .ck .hint { display: none; }
+}
+`;export{R as default};

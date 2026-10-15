@@ -1,0 +1,16 @@
+import{a as e,n as t,t as n}from"./jsx-runtime-D3jfb0Ew.js";import{t as r}from"./animate-CX_WDEyT.js";import{t as i}from"./use-transform-D6WS83kB.js";import{t as a}from"./use-motion-value-CIZAIwyH.js";import{n as o,r as s}from"./index-uImfd-0P.js";var c=e(t(),1),l=n(),u=(e,t,n)=>Math.min(n,Math.max(t,e));function d(e=.56){let[t,n]=(0,c.useState)(!1),[i,o]=(0,c.useState)(!1),s=a(0),l=(0,c.useRef)(e),d=(0,c.useRef)(null);return(0,c.useEffect)(()=>()=>d.current?.stop(),[]),{on:t,open:i,wipe:s,toggle:()=>{d.current?.stop(),i?(o(!1),l.current=u(s.get(),.12,.9),d.current=r(s,0,{duration:.55,ease:[.65,0,.35,1],onComplete:()=>n(!1)})):(n(!0),o(!0),s.set(0),d.current=r(s,l.current,{type:`spring`,stiffness:140,damping:22}))}}}function f({split:e,label:t}){let[n,r]=(0,c.useState)(()=>({w:window.innerWidth,h:window.innerHeight}));(0,c.useEffect)(()=>{let e=()=>r({w:window.innerWidth,h:window.innerHeight});return window.addEventListener(`resize`,e),()=>window.removeEventListener(`resize`,e)},[]);let{wipe:a}=e,d=i(a,e=>n.w*e/.84),f=i(a,e=>n.w*(e-.16)/.84),m=i(a,e=>n.w*(e-.08)/.84),h=(0,c.useRef)(null),g=e=>{e.stopPropagation(),h.current=e.pointerId,e.currentTarget.setPointerCapture(e.pointerId)},_=e=>{h.current===e.pointerId&&a.set(u(.84*e.clientX/n.w+.08,.06,.94))},v=e=>{h.current===e.pointerId&&(h.current=null)};return(0,l.jsx)(s,{children:e.open&&(0,l.jsxs)(o.div,{className:`osplit`,initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},transition:{duration:.3},children:[(0,l.jsx)(`style`,{children:p}),(0,l.jsxs)(`svg`,{className:`osplit-line`,width:n.w,height:n.h,children:[(0,l.jsx)(o.line,{x1:d,y1:0,x2:f,y2:n.h,stroke:`rgba(0,0,0,.22)`,strokeWidth:4}),(0,l.jsx)(o.line,{x1:d,y1:0,x2:f,y2:n.h,stroke:`#fff`,strokeWidth:1.5})]}),(0,l.jsxs)(o.div,{className:`osplit-knob`,style:{x:m,y:n.h/2},onPointerDown:g,onPointerMove:_,onPointerUp:v,onPointerCancel:v,whileHover:{scale:1.06},whileTap:{scale:.94},children:[(0,l.jsx)(`span`,{className:`osplit-tag l`,children:`原图`}),(0,l.jsx)(`svg`,{width:`22`,height:`22`,viewBox:`0 0 22 22`,"aria-hidden":!0,children:(0,l.jsx)(`path`,{d:`M8 6 L3 11 L8 16 M14 6 L19 11 L14 16`,fill:`none`,stroke:`currentColor`,strokeWidth:`1.8`,strokeLinecap:`round`,strokeLinejoin:`round`})}),(0,l.jsx)(`span`,{className:`osplit-tag r`,children:t})]})]})})}var p=`
+.overlay > .osplit { position: absolute; inset: 0; pointer-events: none; }
+.osplit-line { position: absolute; left: 0; top: 0; pointer-events: none; }
+.osplit-knob {
+  position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; pointer-events: auto; cursor: ew-resize; touch-action: none;
+  background: #fff; color: #1d1c1a; box-shadow: 0 6px 20px -6px rgba(0,0,0,.4), 0 0 0 1px rgba(0,0,0,.06);
+}
+.osplit-tag {
+  position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; pointer-events: none;
+  padding: 5px 9px; border-radius: 999px; font: 500 11.5px/1 var(--sans); letter-spacing: .02em;
+  background: rgba(20, 20, 22, .72); color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.osplit-tag.l { right: 54px; }
+.osplit-tag.r { left: 54px; }
+`;export{d as n,f as t};
