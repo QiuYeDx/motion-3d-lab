@@ -137,3 +137,13 @@ and report the number.
   CPU textures incrementally or cache them at module level after first creation.
 - Use a UNIQUE scratch-file name prefixed with your PROFILE (e.g. `_p-sty19Still.tsx`) if you make a temporary test
   page, and delete it before reporting.
+
+## Non-stylize demos (iso / particle / shader / lab) — later batches
+- Same first-load budget: < 300 ms max frame gap, measured from the gallery with the script in "Shader compile cost".
+  Heavy custom shaders: compile them with `renderer.compileAsync` against the SCREEN target before first draw (see
+  how `src/lib/stylize.tsx` `prepare()` and `src/demos/shader/HalftonePrint.tsx` do it), show a cheap fallback until
+  ready. Heavy lit scenes: `usePrecompiled` from `src/demos/stylize/precompile.ts` (+ `shadows="percentage"`).
+  Heavy CPU setup (geometry generation, textures): spread across frames / after mount, never all in the first frame.
+- Raymarched full-screen shaders: render at reduced resolution (e.g. 0.5–0.75 of the drawing buffer, upscale) and
+  adapt with drei `PerformanceMonitor`; bounded step counts; keep 60 fps on a mid GPU at 1440×900.
+- Every page needs a good `?poster` look (centred subject, `body.poster` hides overlay/hint/chrome).

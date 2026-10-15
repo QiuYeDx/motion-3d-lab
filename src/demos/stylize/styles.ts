@@ -41,6 +41,8 @@ import { createVectorEffect, vectorMeta, vectorModes, setVectorMode, type Vector
 import { createQinghuaEffect, qinghuaMeta, qinghuaModes, setQinghuaMode, type QinghuaMode } from './effects/qinghua'
 import { createReinigerEffect, reinigerMeta, reinigerModes, setReinigerMode, type ReinigerMode } from './effects/reiniger'
 import { createPbnEffect, fillPaintByNumber, pbnMeta, pbnModes, setPbnMode, type PbnMode } from './effects/paintbynumber'
+import { createSandEffect, pourSand, sandMeta, sandModes, setSandMode, type SandMode } from './effects/sand'
+import { createMarkerEffect, drawMarker, markerMeta, markerModes, setMarkerMode, type MarkerMode } from './effects/marker'
 /** Every stylize effect the switcher can show, in display order. */
 export type StyleCat = 'print' | 'hand' | 'craft' | 'line' | 'digital' | 'imaging'
 
@@ -177,6 +179,17 @@ export const STYLES: StyleDef[] = [
     onEnter: (fx) => drawCrayon(fx),
   },
   {
+    id: 'marker',
+    cat: 'hand',
+    short: '马克笔',
+    note: '平行笔触 · 白笔高光',
+    meta: markerMeta,
+    create: withBg(createMarkerEffect, markerMeta.background),
+    modes: markerModes,
+    setMode: (fx, id) => setMarkerMode(fx, id as MarkerMode),
+    onEnter: (fx) => drawMarker(fx),
+  },
+  {
     id: 'chalk',
     cat: 'hand',
     short: '粉笔',
@@ -270,6 +283,17 @@ export const STYLES: StyleDef[] = [
     create: withBg(createPapercutEffect, papercutMeta.background),
     modes: papercutModes,
     setMode: (fx, id) => setPapercutMode(fx, id as PapercutMode),
+  },
+  {
+    id: 'sand',
+    cat: 'craft',
+    short: '沙画',
+    note: '灯箱 · 颗粒 · 指痕',
+    meta: sandMeta,
+    create: withBg(createSandEffect, sandMeta.background),
+    modes: sandModes,
+    setMode: (fx, id) => setSandMode(fx, id as SandMode),
+    onEnter: (fx) => pourSand(fx),
   },
   {
     id: 'puppet',
