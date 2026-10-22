@@ -1,0 +1,1 @@
+import{h as e}from"./events-9ce18a08.esm-BJiOHOtz.js";function t(t=1.15){let{width:n,height:r}=e(e=>e.size);return Math.min(1,n/r*t)}export{t};
