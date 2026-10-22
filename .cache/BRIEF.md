@@ -147,3 +147,18 @@ and report the number.
 - Raymarched full-screen shaders: render at reduced resolution (e.g. 0.5–0.75 of the drawing buffer, upscale) and
   adapt with drei `PerformanceMonitor`; bounded step counts; keep 60 fps on a mid GPU at 1440×900.
 - Every page needs a good `?poster` look (centred subject, `body.poster` hides overlay/hint/chrome).
+
+## Learned in batch 7 (2026-10-22)
+- Canvas textures: `getContext('2d', { willReadFrequently: true })` (software canvas) — the default GPU canvas cost
+  ~200 ms on the first texture upload here.
+- `renderer.compile()` collects lights with `traverseVisible`: lights inside a hidden subject are left out, programs get
+  compiled for the wrong light count and relink synchronously on first visible draw. Keep lights outside the hidden
+  subject. Under StrictMode, don't dispose a PMREMGenerator while its programs are still linking (dispose after the
+  compile job settles) — see `src/demos/lab/stagedStudio.ts`.
+- Heavy static iso scenes: bake plain-coloured meshes into one vertex-coloured mesh and mount in stages
+  (`src/demos/iso/staticMerge.ts`: `useBakeStatic`, `useStagedWarmup`).
+- `useScreenWarmup` (isoWarmup.ts) can't coexist with EffectComposer (both render at priority 1); see the layer-based
+  Warmup in `src/demos/iso/DataCenter.tsx` for bloom scenes.
+- drei `ContactShadows` drew nothing in one agent's setup; blurred blob shadows per piece are a reliable fallback.
+- Polished metal in the black lab studio env reads as dark "faces" — give metal a surround (see PendulumWave's
+  `PENDULUM_ENV`). Reflected window panes with a cross mullion read as a logo — avoid.
